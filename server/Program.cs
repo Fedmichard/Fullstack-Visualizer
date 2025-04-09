@@ -1,7 +1,7 @@
 // Controls things like dependancy injection
 // Provide with services and things to add to program
 // Almost like module
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args); // Var tells compiler to figure out the variable type (like auto in c#)
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -20,5 +20,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+/* DEFINE API END POINTS HERE */
 
 app.Run();
