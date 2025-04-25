@@ -1,9 +1,13 @@
 import React from 'react';
 
 const About = () => {
-    <body>
-        <h1>Body Will Go Here</h1>
-    </body>
+    return (
+        <main>
+            <section>
+                <h1>Fedmichard Francois</h1>
+            </section>
+        </main>
+    )
 }
 
 export default About;
