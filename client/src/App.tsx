@@ -1,10 +1,9 @@
 import React from 'react';
-import logo from './logo.svg';
 
-import './App.css';
+import './App.css'
 
-import NavBar from './components/NavBar';
-import Footer from './components/Footer';
+import NavBar from './components/NavBar/NavBar';
+import Footer from './components/Footer/Footer';
 
 import About from './pages/about';
 
