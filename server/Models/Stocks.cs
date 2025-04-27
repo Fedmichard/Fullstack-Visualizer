@@ -2,10 +2,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace server.Models;
 
-// Stock object that will be mapped to a relation in a database
-// In O/RM defines how C# classes correspond to database tables and how their properties map to table columns
-// Takes our classes and turn them into objects
-// Like JSON
+/*
+    Stock object that will be mapped to a relation in a database
+    In O/RM defines how C# classes correspond to database tables and how their properties map to table columns
+    Takes our classes and turn them into objects
+*/
 public class Stock {
     public int Id { get; set; }
 
@@ -42,5 +43,5 @@ public class Stock {
 
     public long MarketCap {get; set;}
 
-    public List<Comments> Comments{get; set;} = new List<Comments>();
+    public List<Comment> Comments{get; set;} = new List<Comment>();
 }
