@@ -1,3 +1,10 @@
 .App {
   height: 100%;
+  background-color: #313E50;
+}
+
+.app-container {
+  margin: auto;
+  width: 92%;
+  height: 100%;
 }
