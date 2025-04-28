@@ -9,10 +9,12 @@ import linkedin from '../../assets/linkedin.png';
 const NavBar = () => {
     return (
         <header className="header">
-            <img src={logo} alt="My logo" height="60em"/>
+            <a href="/"><img src={logo} alt="My logo" height="60em"/></a>
             <nav>
                 <ul className="nav-list">
-                    <li className="nav-list-item">About</li>
+                    <li className="nav-list-item">
+                        <a href="/About">About</a>
+                    </li>
                     <li className="nav-list-item">
                         <a href="https://www.linkedin.com/in/fedmichard/">
                             <img src={linkedin} alt="Fedmichard Francois" width="25em" />

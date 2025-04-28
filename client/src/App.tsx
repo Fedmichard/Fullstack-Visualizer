@@ -1,21 +1,33 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router';
 
 import './App.css'
 
 import NavBar from './components/NavBar/NavBar';
 import Footer from './components/Footer/Footer';
 
+import Home from './pages/home';
 import About from './pages/about';
+import Application from './pages/app';
 
 function App() {
   return (
-    <div className="App">
-      <div className="app-container">
-      <NavBar />
-      <About />
-      <Footer />
-    </div>
-  </div>
+    <BrowserRouter>
+      <div className="App">
+        <div className="app-container">
+          <NavBar />
+          <Routes>
+            <Route path='/' element={<Home />} />
+            <Route path='/About' element={<About />} />
+          </Routes>
+          <Footer />
+        </div>
+
+        <Routes>
+          <Route path='/Application' element={<Application />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 
