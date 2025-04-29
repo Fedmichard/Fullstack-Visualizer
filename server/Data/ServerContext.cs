@@ -31,7 +31,6 @@ namespace api.Data {
                 What database provider you're connecting to (postgresql in this examp)
                 Info to locate and access db server
                 other configs
-
             
             A base is equivalent to typing out : DbContext() but we can't in a constructor
             It calls the constructor of the base() class DbContext()
@@ -43,9 +42,7 @@ namespace api.Data {
             So calling the constructor for our parent class creates that parent class and all the it's variables and functions
             are available, So long as they're not private;
         */
-        public ServerContext(DbContextOptions options) : base(options) {
-
-        }
+        public ServerContext(DbContextOptions options) : base(options) {}
 
         /*  
             Now we must add our tables
