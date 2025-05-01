@@ -1,4 +1,5 @@
 using api.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,9 +9,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // After we crated our ServerContext we now need to add our context to our application
-builder.Services.AddDbContext<ServerContext>(options => {
-    
-});
+// ServerContext is the heart of our interaction and represents our db and it'll interact with EFC(O/RM)
+// Set connection in app settings json
+builder.Services.AddDbContext<ServerContext>(options => 
+    // first setting for our db context is connecting to our database
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
