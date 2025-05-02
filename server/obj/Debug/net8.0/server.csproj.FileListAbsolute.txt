@@ -136,3 +136,17 @@ C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug
 C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\runtimes\win\lib\net6.0\System.Runtime.Caching.dll
 C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\runtimes\win\lib\net6.0\System.Security.Cryptography.ProtectedData.dll
 C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\runtimes\win\lib\net6.0\System.Windows.Extensions.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Relational.Design.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.Extensions.Caching.Abstractions.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.Extensions.Caching.Memory.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Abstractions.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.Extensions.Logging.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.Extensions.Options.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Microsoft.Extensions.Primitives.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Npgsql.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\Npgsql.EntityFrameworkCore.PostgreSQL.Design.dll
+C:\Users\franc\Documents\Personal_Projects\Fullstack-Visualizer\server\bin\Debug\net8.0\System.Diagnostics.DiagnosticSource.dll

@@ -12,7 +12,7 @@ using server.Models;
     Creates a database schema, EF Core will generate all the SQL code to create tables, cols, relationships, and constraints
     Executes queries to create instances(objects of your model classes)
 */
-namespace api.Data;
+namespace server.Data;
 /*
     First we are taking our application inheriting from DbContext class from EntityFrameworkCore namespace
     DbContext is the heart of my interaction with the database in entity framework core
@@ -51,6 +51,7 @@ public class ServerContext : DbContext {
         And another collection of all entities with comment datatype
         These make it easy to retrieve all entities for example
     */
-    public DbSet<Stock> Stock { get; set; }
-    public DbSet<Comment> Comment { get; set; }
+    public DbSet<Stock> Stocks { get; set; }
+    public DbSet<Comment> Comments { get; set; }
+    public DbSet<User> Users { get; set; }
 }

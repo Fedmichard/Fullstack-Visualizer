@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace server.Models;
 
 /*
-    Stock object that will be mapped to a relation in a database
+    Stock object that will be mapped to a relation in a database, also referred to as data transfer object
     In O/RM defines how C# classes correspond to database tables and how their properties map to table columns
     Takes our classes and turn them into objects
 */
