@@ -13,7 +13,8 @@ builder.Services.AddSwaggerGen();
 // Set connection in app settings json
 builder.Services.AddDbContext<ServerContext>(options => 
     // first setting for our db context is connecting to our database
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    // Essentially telling our data base context to use postgres
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
