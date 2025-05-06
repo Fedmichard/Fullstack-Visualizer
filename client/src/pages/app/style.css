@@ -1,0 +1,38 @@
+.flexbox {
+    /* background-color: #252525; */
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.toolbar {
+    /* border: 1px solid red; */
+    background-color: #474747;
+    flex-shrink: 0;
+}
+
+.tools {
+    flex-flow: column wrap;
+    display: grid;
+}
+
+.toolbtn {
+    
+}
+
+.toolbtn :active {
+
+}
+
+.renderer {
+    /* border: 1px solid green; */
+    background-color: #252525;
+    flex-grow: 1;
+}
+
+.rightbar {
+    /* border: 1px solid blue; */
+    background-color: #474747;
+    flex-shrink: 0;
+}
