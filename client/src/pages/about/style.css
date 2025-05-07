@@ -1,0 +1,15 @@
+.about-container {
+    background-color: aliceblue;
+    display: flex;
+    flex-direction: column;
+
+}
+
+.about-me {
+    border: red solid 1px;
+    flex-direction: row;
+}
+
+.about-more {
+    border: greenyellow solid 1px;
+}
