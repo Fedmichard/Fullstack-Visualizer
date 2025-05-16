@@ -55,4 +55,5 @@ public class ServerContext : DbContext {
     public DbSet<Comment> Comments { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UploadedImage> Image { get; set; }
+    public DbSet<Dicom> Dicoms { get; set; }
 }
