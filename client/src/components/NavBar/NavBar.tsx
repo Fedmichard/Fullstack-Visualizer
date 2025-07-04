@@ -9,24 +9,32 @@ import linkedin from '../../assets/linkedin.png';
 const NavBar = () => {
     return (
         <header className="header">
-            <a href="/"><img src={logo} alt="My logo" height="60em"/></a>
-            <nav>
+            <div className="nav-left">
+                <a href="/"><img src={logo} alt="My logo" height="60em"/></a>
+            </div>
+
+            <nav className="nav-center">
                 <ul className="nav-list">
                     <li className="nav-list-item">
-                        <a href="/About">About</a>
+                        <a href="/"> Home </a>
                     </li>
                     <li className="nav-list-item">
-                        <a href="https://www.linkedin.com/in/fedmichard/">
-                            <img src={linkedin} alt="Fedmichard Francois" width="25em" />
-                        </a>
+                        <a href="/About"> About </a>
                     </li>
                     <li className="nav-list-item">
-                        <a href="https://github.com/Fedmichard">
-                            <img src={github} alt="Fedmichard" width="25em" />
-                        </a>
+                        <a href="https://www.linkedin.com/in/fedmichard/"> LinkedIn </a>
+                    </li>
+                    <li className="nav-list-item">
+                        <a href="https://github.com/Fedmichard"> GitHub </a>
                     </li>
                 </ul>
             </nav>
+
+            <div className="nav-right">
+                <a href="/Application">
+                    <button> Try Now → </button>
+                </a>
+            </div>
         </header>
     )
 }

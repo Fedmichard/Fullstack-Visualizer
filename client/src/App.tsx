@@ -14,6 +14,7 @@ function App() {
   return (
     <BrowserRouter>
       <div className='App'>
+        
         {/* Header + Pages */}
         <div className='app-container'>
           <NavBar />

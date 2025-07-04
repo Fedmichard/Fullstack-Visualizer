@@ -5,17 +5,49 @@ a {
 
 .header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+.nav-center {
+    background-color: #6b6b6b;
+    border-radius: 9px;
+    padding: 0.4rem 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .nav-list {
     list-style: none;
-    align-items: center;
     display: flex;
+    gap: 2rem;
+    align-items: center;
+    margin: 0;
+    padding: 0;
 }
 
 .nav-list-item {
-    margin-right: 10px;
     color: #c6c6c6;
+    padding: 0.2rem 0.4rem;
+}
+
+.nav-list-item:hover {
+    background-color: #00bfff;
+}
+
+.nav-right a > button {
+    background-color: #23b32a;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.nav-right a > button:hover {
+    background-color: #0056b3;
 }
