@@ -2,13 +2,50 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #505050;
+  background-color: #FFFFFF;
+}
+
+.navbar-container {
+  margin: auto;
+  flex-grow: 1;
+  width: 98%;
+  border-bottom: rgb(207, 195, 195) solid 1px;
 }
 
 .app-container {
   margin: auto;
   flex-grow: 1;
-  width: 92%;
+  width: 60%;
+  max-width: 1000px;
+  min-width: 300px;
+}
+
+/* Large desktop and laptop screens (1025px–1440px) */
+@media (max-width: 1440px) {
+  .app-container {
+    width: 98%;
+  }
+}
+
+/* Medium laptops and tablets (768px–1024px) */
+@media (max-width: 1024px) {
+  .app-container {
+    width: 80%;
+  }
+}
+
+/* Small tablets (641px–767px) */
+@media (max-width: 767px) {
+  .app-container {
+    width: 90%;
+  }
+}
+
+/* Phones (≤640px) */
+@media (max-width: 640px) {
+  .app-container {
+    width: 95%;
+  }
 }
 
 .application-container {

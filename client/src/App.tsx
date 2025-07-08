@@ -14,22 +14,23 @@ function App() {
   return (
     <BrowserRouter>
       <div className='App'>
-        
-        {/* Header + Pages */}
-        <div className='app-container'>
+        <div className='navbar-container'>
           <NavBar />
+        </div>
+
+        <div className='app-container'>
           <Routes>
             <Route path='/' element={<Home />} />
             <Route path='/About' element={<About />} />
           </Routes>
         </div>
-        {/* Renderer */}
+
         <div className='application-container'>
           <Routes>
             <Route path='/Application' element={<Application />} />
           </Routes>
         </div>
-        {/* Footer */}
+        
         <div className='app-container'>
           <Footer />
         </div>

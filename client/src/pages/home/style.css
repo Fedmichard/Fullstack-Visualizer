@@ -4,7 +4,6 @@ a {
 }
 
 .home-container {
-    background-color: aliceblue;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -12,7 +11,7 @@ a {
 }
 
 .app-info {
-    border: red solid 1px;
+    
 }
 
 .more-info {
