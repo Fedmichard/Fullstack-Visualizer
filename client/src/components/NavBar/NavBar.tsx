@@ -2,7 +2,7 @@ import React from "react";
 
 import './style.css'
 
-import logo from '../../assets/TypeVisMedical.png';
+import logo from '../../assets/dicompose.png';
 import github from '../../assets/github.png';
 import linkedin from '../../assets/linkedin.png';
 
@@ -10,7 +10,7 @@ const NavBar = () => {
     return (
         <header className="header">
             <div className="nav-left">
-                <a href="/"><img src={logo} alt="My logo" height="60em"/></a>
+                <a href="/"><img src={logo} alt="My logo" width="150em"/></a>
             </div>
 
             <nav className="nav-center">

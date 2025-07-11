@@ -9,6 +9,13 @@ a {
     color: black;
 }
 
+.nav-left {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: #0056b3;
+}
+
 .nav-center {
     border-radius: 9px;
     padding: 0.35rem 0.35rem;

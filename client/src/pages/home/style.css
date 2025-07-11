@@ -10,8 +10,32 @@ a {
     flex-grow: 1;
 }
 
-.app-info {
+.screenshot {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.key-features {
     
+}
+
+.feature-list {
+    list-style: none;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.app-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .more-info {
