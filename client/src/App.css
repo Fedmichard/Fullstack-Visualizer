@@ -1,8 +1,18 @@
+:root {
+  --bg: #0b1020;        /* base background */
+  --panel: #10182e;     /* panels/cards */
+  --text: #e6e8ef;      /* main text */
+  --muted: #9aa3b2;     /* secondary text */
+  --accent: #22d3ee;    /* cyan accent */
+  --accent-2: #7c3aed;  /* optional purple accent */
+}
+
 .App {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #FFFFFF;
+  background-color: #0b1020;
+  color: #e6e8ef; /* light text */
 }
 
 .navbar-container {
@@ -10,6 +20,12 @@
   flex-grow: 1;
   width: 98%;
   border-bottom: rgb(207, 195, 195) solid 1px;
+}
+
+.main-container {
+  flex: 1; /* 👈 only this grows */
+  display: flex;
+  flex-direction: column;
 }
 
 .app-container {
@@ -50,6 +66,6 @@
 
 .application-container {
   flex-grow: 1;
-  height: 100vh;
+  height: 100%;
   width: 100%;
 }

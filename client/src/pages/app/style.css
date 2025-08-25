@@ -1,38 +1,112 @@
-.flexbox {
-    /* background-color: #252525; */
-    height: 100%;
-    width: 100%;
+/* Overall layout */
+.app-layout {
     display: flex;
-    flex-direction: row;
+    height: 93vh;  /* full viewport height */
+    background-color: #252525;
+    color: #fff;
+    overflow: hidden;
 }
 
+/* Toolbar (left) */
 .toolbar {
-    /* border: 1px solid red; */
     background-color: #474747;
+    width: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0;
     flex-shrink: 0;
 }
 
 .tools {
-    flex-flow: column wrap;
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .toolbtn {
-    
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: background 0.2s;
 }
 
-.toolbtn :active {
-
+.toolbtn:hover {
+    background-color: #5a5a5a;
+    border-radius: 6px;
 }
 
+/* Renderer (center) */
 .renderer {
-    /* border: 1px solid green; */
-    background-color: #252525;
     flex-grow: 1;
+    background-color: #252525;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
+/* Rightbar (right) */
 .rightbar {
-    /* border: 1px solid blue; */
     background-color: #474747;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
     flex-shrink: 0;
+}
+
+/* Top section (tabs + content) */
+.rightbar-top {
+    flex: 1;
+    border-bottom: 1px solid #2e2e2e;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #2e2e2e;
+    margin-bottom: 0.5rem;
+}
+
+.tab {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s, border-bottom 0.2s;
+}
+
+.tab.active {
+    border-bottom: 2px solid #00bcd4;
+    color: #fff;
+}
+
+.tab:hover {
+    color: #00bcd4;
+}
+
+/* Bottom image grid */
+.rightbar-bottom {
+    height: 200px;
+    background: #3a3a3a;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 0.5rem;
+}
+
+.image-item {
+    background: #555;
+    border-radius: 4px;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.8rem;
 }

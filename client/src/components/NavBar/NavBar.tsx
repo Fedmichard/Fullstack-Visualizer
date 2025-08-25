@@ -19,9 +19,6 @@ const NavBar = () => {
                         <a href="/"> Home </a>
                     </li>
                     <li className="nav-list-item">
-                        <a href="/About"> About </a>
-                    </li>
-                    <li className="nav-list-item">
                         <a href="https://www.linkedin.com/in/fedmichard/"> LinkedIn </a>
                     </li>
                     <li className="nav-list-item">

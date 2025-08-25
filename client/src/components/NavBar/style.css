@@ -3,11 +3,16 @@ a {
 }
 
 .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: black;
+  display: flex; justify-content: space-between; align-items: center;
+  color: var(--text); padding: .75rem 4%;
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 40;
 }
+
+.nav-list-item { color: var(--text); padding: .2rem 1.2rem; border-radius: 999px; }
+.nav-list-item:hover { background-color: rgba(124,58,237,.22); transition: background-color .2s ease; }
+.nav-right a > button { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #0b0f1e; }
+.nav-right a > button:hover { filter: brightness(1.08); }
 
 .nav-left {
     display: flex;
