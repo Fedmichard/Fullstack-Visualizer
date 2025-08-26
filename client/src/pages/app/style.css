@@ -1,14 +1,26 @@
 /* Overall layout */
+:root {
+  --bg-dark: #1c1f26;       /* backdrop for renderer */
+  --panel-dark: #202635;    /* toolbar / rightbar panels */
+  --panel-light: #2a3142;   /* hover / elevated panels */
+  --accent: #22d3ee;        /* cyan (primary) */
+  --accent-2: #7c3aed;      /* purple (secondary) */
+  --text-light: #e6e8ef;
+  --text-muted: #9aa3b2;
+  --line: #2f3a55;
+}
+
 .app-layout {
     display: flex;
     height: 93vh;  /* full viewport height */
-    background-color: #252525;
-    color: #fff;
+    background-color: #1c1f26;
+    color: #e6e8ef;
     overflow: hidden;
 }
 
 /* Toolbar (left) */
 .toolbar {
+    background: linear-gradient(180deg, var(--panel-dark), #1a1f2d);
     background-color: #474747;
     width: 60px;
     display: flex;
@@ -16,6 +28,7 @@
     align-items: center;
     padding: 0.5rem 0;
     flex-shrink: 0;
+    border-right: 1px solid var(--line);
 }
 
 .tools {
@@ -29,18 +42,19 @@
     border: none;
     cursor: pointer;
     padding: 0.5rem;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.2s;
 }
 
 .toolbtn:hover {
-    background-color: #5a5a5a;
+    background: var(--panel-light);
+    transform: scale(1.1);
     border-radius: 6px;
 }
 
 /* Renderer (center) */
 .renderer {
     flex-grow: 1;
-    background-color: #252525;
+    background-color: var(--bg-dark);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -49,10 +63,11 @@
 
 /* Rightbar (right) */
 .rightbar {
-    background-color: #474747;
+    background: linear-gradient(180deg, var(--panel-dark), #181c28);
     width: 320px;
     display: flex;
     flex-direction: column;
+    border-left: 1px solid var(--line);
     flex-shrink: 0;
 }
 
@@ -66,7 +81,7 @@
 
 .tabs {
     display: flex;
-    border-bottom: 1px solid #2e2e2e;
+    border-bottom: 1px solid var(--line);
     margin-bottom: 0.5rem;
 }
 
@@ -75,14 +90,16 @@
     background: none;
     border: none;
     padding: 0.5rem;
-    color: #ccc;
+    color: var(--text-muted);
     cursor: pointer;
-    transition: color 0.2s, border-bottom 0.2s;
+    font-weight: 600;
+    transition: color 0.2s, border-bottom 0.2s, background 0.2s;
 }
 
 .tab.active {
     border-bottom: 2px solid #00bcd4;
     color: #fff;
+    background: rgba(34, 211, 238, 0.05);
 }
 
 .tab:hover {
