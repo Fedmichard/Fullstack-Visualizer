@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "uSql9CqB/1g=",
+  "dgSpecHash": "yHkc2QCQj+k=",
   "success": true,
-  "projectFilePath": "C:\\Users\\franc\\Documents\\Personal_Projects\\Fullstack-Visualizer\\server\\server.csproj",
+  "projectFilePath": "C:\\Users\\franc\\Documents\\Personal\\Fullstack-Visualizer\\server\\server.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\franc\\.nuget\\packages\\azure.core\\1.25.0\\azure.core.1.25.0.nupkg.sha512",
     "C:\\Users\\franc\\.nuget\\packages\\azure.identity\\1.7.0\\azure.identity.1.7.0.nupkg.sha512",

@@ -8815,11 +8815,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\franc\\Documents\\Personal_Projects\\Fullstack-Visualizer\\server\\server.csproj",
+      "projectUniqueName": "C:\\Users\\franc\\Documents\\Personal\\Fullstack-Visualizer\\server\\server.csproj",
       "projectName": "server",
-      "projectPath": "C:\\Users\\franc\\Documents\\Personal_Projects\\Fullstack-Visualizer\\server\\server.csproj",
+      "projectPath": "C:\\Users\\franc\\Documents\\Personal\\Fullstack-Visualizer\\server\\server.csproj",
       "packagesPath": "C:\\Users\\franc\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\franc\\Documents\\Personal_Projects\\Fullstack-Visualizer\\server\\obj\\",
+      "outputPath": "C:\\Users\\franc\\Documents\\Personal\\Fullstack-Visualizer\\server\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\franc\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -8845,7 +8845,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net8.0": {
@@ -8899,7 +8900,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.407/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
