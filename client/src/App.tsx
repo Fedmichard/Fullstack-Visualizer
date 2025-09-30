@@ -4,9 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router';
 import './App.css'
 
 import NavBar from './components/NavBar/NavBar';
-import Footer from './components/Footer/Footer';
 
-import Home from './pages/home';
 import Application from './pages/app';
 
 function App() {
@@ -14,23 +12,18 @@ function App() {
     <BrowserRouter>
       <div className='App'>
         <div className='navbar-container'>
-          <NavBar />
-        </div>
-
-        <div className='app-container'>
-          <Routes>
-            <Route path='/' element={<Home />} />
-          </Routes>
         </div>
 
         <div className='application-container'>
           <Routes>
-            <Route path='/Application' element={<Application />} />
+            <Route path='/' element={<Application />} />
           </Routes>
         </div>
-        
+
         <div className='app-container'>
-          <Footer />
+          <Routes>
+            {/* Empty for now, leaving here if I want to add about page */}
+          </Routes>
         </div>
         
 

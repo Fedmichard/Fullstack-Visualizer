@@ -1,8 +1,0 @@
-.footer-links a {
-    margin: 0 0.5rem;
-    color: var(--muted);
-    transition: color 0.2s;
-}
-.footer-links a:hover {
-    color: var(--accent); /* cyan hover */
-}
