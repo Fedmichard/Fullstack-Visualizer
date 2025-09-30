@@ -28,7 +28,7 @@ const NavBar = () => {
             </nav>
 
             <div className="nav-right">
-                <a href="/Application">
+                <a href="/About">
                     <button> Try Now → </button>
                 </a>
             </div>
