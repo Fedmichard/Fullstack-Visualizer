@@ -1,5 +1,5 @@
 namespace server.Models;
 
-public class ProcessedDicom {
+public class Volume {
     
 }
