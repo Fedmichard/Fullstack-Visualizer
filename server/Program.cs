@@ -20,18 +20,35 @@ builder.Services.AddDbContext<ServerContext>(options =>
     // Essentially telling our data base context to use postgres
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "myAllowSpecificOrigins",
+        policy =>
+        {
+            // This policy allows your React app to make requests
+            policy.WithOrigins("http://localhost:3000") 
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
+// everything below builder.build is considered middleware
+// defines how http requests flows through app
+// flows through each middleware in order
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwagger(); // checks if request is for swagger
+    app.UseSwaggerUI(); // checks if request is for swagger ui
 }
 
-app.UseHttpsRedirection();
+app.UseHttpsRedirection(); // checks if request is http and chanes to https
 
-// Api endpoints
+app.UseCors("myAllowSpecificOrigins");
+
+// Map api endpoints
 app.MapControllers();
 
 app.Run();

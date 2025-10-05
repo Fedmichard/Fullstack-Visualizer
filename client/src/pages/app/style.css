@@ -38,6 +38,8 @@ body {
 
 /* --- TOP BAR STYLES --- */
 .top-bar {
+    position: relative;
+    z-index: 100;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -205,7 +207,7 @@ body {
     bottom: 0;
     width: 5px;
     cursor: col-resize;
-    z-index: 10;
+    z-index: 5;
     transition: background-color 0.2s;
 }
 

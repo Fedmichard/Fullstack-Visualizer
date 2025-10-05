@@ -1,30 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+// Make sure to re-import your test function
+import { uploadDicom } from '../../utils/dicom/api'; 
 import './style.css';
-
-// Import the icons from your assets folder
 import githubIcon from '../../assets/github.png';
 import linkedinIcon from '../../assets/linkedin.png';
-
-const TopBar = () => {
-    return (
-        <header className="top-bar">
-            <div className="top-bar-left">
-                <span className="app-title">DICOMIZER</span>
-                <button className="top-bar-btn">Upload DICOM</button>
-                <button className="top-bar-btn">Export Render</button>
-            </div>
-            <div className="top-bar-right">
-                {/* Updated links with images */}
-                <a href="https://github.com/Fedmichard/Fullstack-Visualizer" target="_blank" rel="noopener noreferrer" className="top-bar-link">
-                    <img src={githubIcon} alt="GitHub Repository" />
-                </a>
-                <a href="https://www.linkedin.com/in/fedmichard/" target="_blank" rel="noopener noreferrer" className="top-bar-link">
-                    <img src={linkedinIcon} alt="LinkedIn Profile" />
-                </a>
-            </div>
-        </header>
-    );
-};
 
 function App() {
     // State for panel dimensions
@@ -32,7 +11,6 @@ function App() {
     const [imageSidebarWidth, setImageSidebarWidth] = useState(300);
     const [metadataPanelHeight, setMetadataPanelHeight] = useState(250);
 
-    // ... (The rest of the App component remains unchanged) ...
     const [resizingPanel, setResizingPanel] = useState<'image' | 'settings' | 'vertical' | null>(null);
     const dragInfo = useRef({ initialPos: 0, initialSize: 0 });
 
@@ -88,9 +66,31 @@ function App() {
         };
     }, [resizingPanel, handleMouseMove, handleMouseUp]);
 
+    // This is the function the button will call
+    const handleUploadClick = () => {
+        console.log('Button clicked, attempting to connect to backend...');
+        uploadDicom();
+    };
+
     return (
         <div className="visualizer-container">
-            <TopBar />
+            {/* TopBar JSX is now directly inside the App component */}
+            <header className="top-bar">
+                <div className="top-bar-left">
+                    <span className="app-title">DICOMIZER</span>
+                    {/* The button can now access functions within App */}
+                    <button className="top-bar-btn" onClick={handleUploadClick}>Upload DICOM</button>
+                    <button className="top-bar-btn">Export Render</button>
+                </div>
+                <div className="top-bar-right">
+                    <a href="https://github.com/Fedmichard/Fullstack-Visualizer" target="_blank" rel="noopener noreferrer" className="top-bar-link">
+                        <img src={githubIcon} alt="GitHub Repository" />
+                    </a>
+                    <a href="https://www.linkedin.com/in/fedmichard/" target="_blank" rel="noopener noreferrer" className="top-bar-link">
+                        <img src={linkedinIcon} alt="LinkedIn Profile" />
+                    </a>
+                </div>
+            </header>
             
             <main className='app-layout'>
                 <section className='renderer'>
