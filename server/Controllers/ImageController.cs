@@ -7,7 +7,8 @@ namespace server.Controllers;
 
 [Route("server/image")]
 [ApiController]
-public class ImageController : ControllerBase {
+public class ImageController : ControllerBase
+{
     // our context that we'll use throughout our API calls
     private readonly ServerContext _context;
 
@@ -15,5 +16,11 @@ public class ImageController : ControllerBase {
     public ImageController(ServerContext context)
     {
         _context = context;
+    }
+
+    [HttpPost("processImage")]
+    public IActionResult processImage()
+    {
+        return Content("");
     }
 }

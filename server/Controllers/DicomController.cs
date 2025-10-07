@@ -18,7 +18,7 @@ public class DicomController : ControllerBase {
     // It’s what tells ASP.NET Core how to generate the HTTP response
     [HttpPost("process")]
     public IActionResult ProcessDicom() {
-        return Content("Processing DICOM");
+        return Content("Processing DICOM...");
     }
     
 }
