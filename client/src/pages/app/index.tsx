@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
 // Make sure to re-import your test function
 import { uploadDicom } from '../../utils/dicom/api'; 
 import './style.css';
@@ -66,10 +66,25 @@ function App() {
         };
     }, [resizingPanel, handleMouseMove, handleMouseUp]);
 
+    // Add a ref for our hidden file input
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // This function is called when the user selects a file
+    const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]; // Get the first selected file
+        if (file) {
+            try {
+                const result = await uploadDicom(file);
+                // Later, you'll save this result to state: setVolumeData(result);
+            } catch (error) {
+                console.error('Upload failed in the component.');
+            }
+        }
+    };
+
     // This is the function the button will call
     const handleUploadClick = () => {
-        console.log('Button clicked, attempting to connect to backend...');
-        uploadDicom();
+        fileInputRef.current?.click();
     };
 
     return (
@@ -82,6 +97,13 @@ function App() {
                     <button className="top-bar-btn" onClick={handleUploadClick}>Upload DICOM</button>
                     <button className="top-bar-btn">Export Render</button>
                 </div>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                    accept=".dcm" // Restrict to DICOM files
+                />
                 <div className="top-bar-right">
                     <a href="https://github.com/Fedmichard/Fullstack-Visualizer" target="_blank" rel="noopener noreferrer" className="top-bar-link">
                         <img src={githubIcon} alt="GitHub Repository" />

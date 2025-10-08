@@ -5,13 +5,31 @@ export interface Dicom {
 
 }
 
-export const uploadDicom = async () => {
+/**
+ * function to upload and process dicom file
+ * @param file our dicom file that we will be uploading
+ * @returns volume data from fo-dicom
+ */
+export const uploadDicom = async (file: File) => {
     try {
         console.log('Uploading Dicom...');
-        const response = await Axios.post(`${API_URL}/server/dicom/process`);
+
+        const formData = new FormData();
+        formData.append('dicomFile', file)
+
+        console.log('Sending file to backend...')
+        const response = await Axios.post(`${API_URL}/server/dicom/process`,
+            formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                }
+        });
+        
         console.log('Response: ', response.data)
+
         return response.data;
     } catch(error: any) {
         console.error('Error Uploading Dicom:', error);
+        throw error;
     }
 }
