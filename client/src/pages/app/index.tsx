@@ -71,10 +71,10 @@ function App() {
 
     // This function is called when the user selects a file
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0]; // Get the first selected file
-        if (file) {
+        const files = event.target.files; // Get the first selected file
+        if (files && files.length > 0) {
             try {
-                const result = await uploadDicom(file);
+                const result = await uploadDicom(files);
                 // Later, you'll save this result to state: setVolumeData(result);
             } catch (error) {
                 console.error('Upload failed in the component.');
@@ -97,12 +97,14 @@ function App() {
                     <button className="top-bar-btn" onClick={handleUploadClick}>Upload DICOM</button>
                     <button className="top-bar-btn">Export Render</button>
                 </div>
+                {/* File input */}
                 <input
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileChange}
                     style={{ display: 'none' }}
                     accept=".dcm" // Restrict to DICOM files
+                    multiple
                 />
                 <div className="top-bar-right">
                     <a href="https://github.com/Fedmichard/Fullstack-Visualizer" target="_blank" rel="noopener noreferrer" className="top-bar-link">

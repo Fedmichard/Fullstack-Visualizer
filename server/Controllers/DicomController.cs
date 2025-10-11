@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using server.DTOs;
 using FellowOakDicom;
 using FellowOakDicom.Imaging;
+using System.Reflection.Metadata;
+using server.Models;
 
 namespace server.Controllers;
 
@@ -10,16 +12,27 @@ namespace server.Controllers;
 public class DicomController : ControllerBase
 {
     [HttpPost("process")]
+    [RequestSizeLimit(100000000)]
     // The [FromForm] attribute has been removed.
-    public IActionResult ProcessDicom(IFormFile dicomFile)
+    public IActionResult ProcessDicom(IFormFileCollection dicomFiles)
     {
-        if (dicomFile == null || dicomFile.Length == 0)
+        if (dicomFiles == null || dicomFiles.Count == 0)
         {
             return BadRequest("No file uploaded.");
         }
 
         try
         {
+            for (int i = 0; i > dicomFiles.Count; i++)
+            {
+                var dicom = DicomFile.Open(dicomFiles[i].OpenReadStream());
+
+                int[] dims = {
+                    dicom.Dataset.GetValue<int>(DicomTag.Columns, 0),
+                    dicom.Dataset.GetValue<int>(DicomTag.Rows, 0),
+                    1
+                };
+            }
             var file = DicomFile.Open(dicomFile.OpenReadStream());
 
             int[] dimensions = { 
