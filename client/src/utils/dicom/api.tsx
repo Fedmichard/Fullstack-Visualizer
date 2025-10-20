@@ -7,16 +7,17 @@ export interface Dicom {
 
 /**
  * function to upload and process dicom file
- * @param file our list of dicom files that we will be uploading
+ * @param files our list of dicom files that we will be uploading
  * @returns volume data from fo-dicom
  */
-export const uploadDicom = async (file: FileList) => {
+export const uploadDicom = async (files: FileList) => {
     try {
         console.log('Uploading Dicom...');
 
+        // creates form data and inserts each file to it
         const formData = new FormData();
-        for (let i = 0; i < file.length; i++) {
-            formData.append('dicomFile', file[i])
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files', files[i])
         }
 
         console.log('Sending file to backend...')
