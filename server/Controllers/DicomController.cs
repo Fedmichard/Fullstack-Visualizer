@@ -15,6 +15,7 @@ public class DicomController : ControllerBase
     [RequestSizeLimit(1_000_000_000)]
     public IActionResult ProcessDicom(IFormFileCollection files)
     {
+        // If the user failed to upload anything
         if (files == null || files.Count == 0)
             return BadRequest("No DICOM file uploaded.");
 
@@ -56,7 +57,7 @@ public class DicomController : ControllerBase
             // --- 4. Allocate full volume ---
             int sliceSize = width * height;
             int totalVoxels = sliceSize * depth;
-            ushort[] fullVolumeData = new ushort[totalVoxels];
+            short[] fullVolumeData = new short[totalVoxels]; // Use short, not ushort!
 
             // --- 5. Fill voxel data ---
             for (int i = 0; i < depth; i++)
@@ -66,17 +67,28 @@ public class DicomController : ControllerBase
                 var frame = pixelData.GetFrame(0);
                 var rawBytes = frame.Data;
 
-                // Convert from byte[] → ushort[]
+                // Get slope and intercept FOR THIS SLICE
+                var slope = slice.Dataset.GetSingleValueOrDefault(DicomTag.RescaleSlope, 1.0f);
+                var intercept = slice.Dataset.GetSingleValueOrDefault(DicomTag.RescaleIntercept, 0.0f);
+
+                // Convert from byte[] → ushort[] (raw values)
                 ushort[] slicePixels16 = new ushort[sliceSize];
                 Buffer.BlockCopy(rawBytes, 0, slicePixels16, 0, Math.Min(rawBytes.Length, sliceSize * 2));
 
-                // Copy into the full volume
-                Array.Copy(slicePixels16, 0, fullVolumeData, i * sliceSize, sliceSize);
+                // --- APPLY THE FORMULA ---
+                // Transform raw ushorts into signed HU shorts and copy into the full volume
+                int sliceOffset = i * sliceSize;
+                for (int k = 0; k < sliceSize; k++)
+                {
+                    // Apply formula and cast to short
+                    short huValue = (short)(slicePixels16[k] * slope + intercept);
+                    fullVolumeData[sliceOffset + k] = huValue;
+                }
             }
 
             // --- 6. Convert to byte[] for DTO ---
-            byte[] voxelDataBytes = new byte[fullVolumeData.Length * 2];
-            Buffer.BlockCopy(fullVolumeData, 0, voxelDataBytes, 0, voxelDataBytes.Length);
+            byte[] voxelDataBytes = new byte[fullVolumeData.Length * 2]; // 2 bytes per short
+                    Buffer.BlockCopy(fullVolumeData, 0, voxelDataBytes, 0, voxelDataBytes.Length);
 
             // --- 7. Package result ---
             var volumeDto = new VolumeDataDto(
