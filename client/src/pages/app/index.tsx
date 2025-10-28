@@ -1,59 +1,66 @@
 import React, { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
-// Make sure to re-import your test function
 import { uploadDicom } from '../../utils/dicom/api'; 
 import './style.css';
 import githubIcon from '../../assets/github.png';
 import linkedinIcon from '../../assets/linkedin.png';
 
-function App() {
-    // State for panel dimensions
-    const [settingsSidebarWidth, setSettingsSidebarWidth] = useState(280);
-    const [imageSidebarWidth, setImageSidebarWidth] = useState(300);
-    const [metadataPanelHeight, setMetadataPanelHeight] = useState(250);
+// Import your 2D preview component
+import { AxialView } from '../../components/Preview/index';
+import { SagittalView } from '../../components/SagittalView';
+import { CoronalView } from '../../components/CoronalView';
 
-    const [resizingPanel, setResizingPanel] = useState<'image' | 'settings' | 'vertical' | null>(null);
+// Interface to hold your processed volume data
+export interface VolumeInfo {
+    dimensions: [number, number, number];
+    voxelSpacing: [number, number, number];
+    volumeData: Int16Array; // The decoded signed 16-bit data
+}
+
+// --- NEW: A type for your tab IDs ---
+type TabID = 'mpr' | 'metadata' | 'render';
+
+function App() {
+    // --- MODIFIED: Simplified state ---
+    const [settingsSidebarWidth, setSettingsSidebarWidth] = useState(300);
+    // --- REMOVED: Panel height states are no longer needed ---
+    
+    // --- This state is now used to control the UI ---
+    const [activeTab, setActiveTab] = useState<TabID>('mpr');
+
+    // --- MODIFIED: Simplified resizing state ---
+    const [resizingPanel, setResizingPanel] = useState<'settings' | null>(null); // Only 'settings' is needed
     const dragInfo = useRef({ initialPos: 0, initialSize: 0 });
 
-    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, panel: 'image' | 'settings' | 'vertical') => {
+    // State for your volume data
+    const [volumeInfo, setVolumeInfo] = useState<VolumeInfo | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // --- MODIFIED: Simplified Resizing Logic ---
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, panel: 'settings') => { // Only 'settings'
         e.preventDefault();
         setResizingPanel(panel);
         
-        if (panel === 'vertical') {
-            dragInfo.current.initialPos = e.clientY;
-            dragInfo.current.initialSize = metadataPanelHeight;
-        } else {
-            dragInfo.current.initialPos = e.clientX;
-            dragInfo.current.initialSize = panel === 'image' ? imageSidebarWidth : settingsSidebarWidth;
-        }
+        // 'settings'
+        dragInfo.current.initialPos = e.clientX;
+        dragInfo.current.initialSize = settingsSidebarWidth;
     };
 
     const handleMouseUp = useCallback(() => {
         setResizingPanel(null);
     }, []);
     
+    // --- MODIFIED: Simplified MouseMove handler ---
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!resizingPanel) return;
-
-        if (resizingPanel === 'vertical') {
-            const delta = e.clientY - dragInfo.current.initialPos;
-            const newHeight = dragInfo.current.initialSize + delta;
-            if (newHeight >= 100 && newHeight <= 600) {
-                setMetadataPanelHeight(newHeight);
-            }
-        } else {
+        
+        if (resizingPanel === 'settings') {
             const delta = e.clientX - dragInfo.current.initialPos;
             const newWidth = dragInfo.current.initialSize - delta;
-            if (resizingPanel === 'image') {
-                if (newWidth >= 100 && newWidth <= 300) {
-                    setImageSidebarWidth(newWidth);
-                }
-            } else if (resizingPanel === 'settings') {
-                if (newWidth >= 280 && newWidth <= 600) {
-                    setSettingsSidebarWidth(newWidth);
-                }
+            if (newWidth >= 280 && newWidth <= 600) {
+                setSettingsSidebarWidth(newWidth);
             }
         }
-    }, [resizingPanel]);
+    }, [resizingPanel, settingsSidebarWidth]); // Simplified dependencies
 
     useEffect(() => {
         if (resizingPanel) {
@@ -66,18 +73,42 @@ function App() {
         };
     }, [resizingPanel, handleMouseMove, handleMouseUp]);
 
+
     // Add a ref for our hidden file input
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // This function is called when the user selects a file
+    // --- UPDATED: This function is called when the user selects a file ---
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files; // Get the first selected file
+        const files = event.target.files;
         if (files && files.length > 0) {
             try {
+                setIsLoading(true); // Set loading state
+                setVolumeInfo(null); // Clear any old data
+                
+                // 1. Get the raw API response
                 const result = await uploadDicom(files);
-                // Later, you'll save this result to state: setVolumeData(result);
+
+                // 2. Decode the Base64 data
+                const binaryString = atob(result.voxelData);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                // 3. Re-interpret the buffer as a SIGNED 16-bit array
+                const decodedVolumeData = new Int16Array(bytes.buffer);
+
+                // 4. Store everything in our state
+                setVolumeInfo({
+                    dimensions: result.dimensions,
+                    voxelSpacing: result.voxelSpacing,
+                    volumeData: decodedVolumeData
+                });
+                
             } catch (error) {
                 console.error('Upload failed in the component.');
+            } finally {
+                setIsLoading(false); // Unset loading state
             }
         }
     };
@@ -87,23 +118,22 @@ function App() {
         fileInputRef.current?.click();
     };
 
+
     return (
         <div className="visualizer-container">
-            {/* TopBar JSX is now directly inside the App component */}
+            {/* TopBar (RESTORED) */}
             <header className="top-bar">
                 <div className="top-bar-left">
                     <span className="app-title">DICOMIZER</span>
-                    {/* The button can now access functions within App */}
                     <button className="top-bar-btn" onClick={handleUploadClick}>Upload DICOM</button>
                     <button className="top-bar-btn">Export Render</button>
                 </div>
-                {/* File input */}
                 <input
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileChange}
                     style={{ display: 'none' }}
-                    accept=".dcm" // Restrict to DICOM files
+                    accept=".dcm"
                     multiple
                 />
                 <div className="top-bar-right">
@@ -117,37 +147,118 @@ function App() {
             </header>
             
             <main className='app-layout'>
+                {/* --- Renderer Section (RESTORED) --- */}
                 <section className='renderer'>
-                    <h1>Renderer Placeholder</h1>
+                    {!volumeInfo && !isLoading && (
+                        <div className="placeholder-content">
+                            <h1>Renderer Placeholder</h1>
+                            <p>Please upload a DICOM series to begin.</p>
+                        </div>
+                    )}
+                    {isLoading && (
+                        <div className="placeholder-content">
+                            <h1>Loading & Processing...</h1>
+                            <p>This may take a moment.</p>
+                        </div>
+                    )}
+                    {volumeInfo && (
+                        <div className="placeholder-content">
+                           <h1>Renderer Placeholder</h1>
+                           <p>Data is loaded!</p>
+                           {/* This is where your <WebGPURenderer> will go */}
+                        </div>
+                    )}
                 </section>
-
-                <section className='image-sidebar' style={{ width: `${imageSidebarWidth}px` }}>
-                    <div className="resizer" onMouseDown={(e) => handleMouseDown(e, 'image')}></div>
-                    <h3>Image Slices</h3>
-                    <div className="image-grid">
-                        {[...Array(24)].map((_, i) => (
-                            <div className="image-item" key={i}>
-                                <p>Img {i+1}</p>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
+                
+                {/* --- MODIFIED: Right Sidebar --- */}
                 <section className='rightbar' style={{ width: `${settingsSidebarWidth}px` }}>
                     <div className="resizer" onMouseDown={(e) => handleMouseDown(e, 'settings')}></div>
+                    
                     <div className="rightbar-content">
-                        <div className="metadata-panel" style={{ height: `${metadataPanelHeight}px` }}>
-                            <h3>Metadata</h3>
-                            <p>Patient ID: 12345</p>
-                            <p>Study Date: 2025-09-30</p>
+
+                        {/* --- NEW: Tab Bar --- */}
+                        <div className="tab-bar">
+                            <button
+                                className={`tab-button ${activeTab === 'mpr' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('mpr')}
+                            >
+                                2D Views
+                            </button>
+                            <button
+                                className={`tab-button ${activeTab === 'metadata' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('metadata')}
+                            >
+                                Metadata
+                            </button>
+                            <button
+                                className={`tab-button ${activeTab === 'render' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('render')}
+                            >
+                                Settings
+                            </button>
                         </div>
 
-                        <div className="resizer-horizontal" onMouseDown={(e) => handleMouseDown(e, 'vertical')}></div>
+                        {/* --- NEW: Tab Content Area --- */}
+                        <div className="tab-content-area">
+                            
+                            {/* --- Panel 1: MPR --- */}
+                            {activeTab === 'mpr' && (
+                                <div className="mpr-panel">
+                                    <h3>2D Views</h3>
+                                    {volumeInfo && (
+                                        <div className="mpr-grid">
+                                            {/* --- (RESTORED) --- */}
+                                            <div className="mpr-view">
+                                                <label>Axial</label>
+                                                <AxialView
+                                                    volumeData={volumeInfo.volumeData}
+                                                    dimensions={volumeInfo.dimensions}
+                                                    sliceIndex={Math.floor(volumeInfo.dimensions[2] / 2)}
+                                                />
+                                            </div>
+                                            <div className="mpr-view">
+                                                <label>Sagittal</label>
+                                                <SagittalView
+                                                    volumeData={volumeInfo.volumeData}
+                                                    dimensions={volumeInfo.dimensions}
+                                                    sliceIndex={Math.floor(volumeInfo.dimensions[0] / 2)} // X-axis
+                                                />
+                                            </div>
+                                            <div className="mpr-view">
+                                                <label>Coronal</label>
+                                                <CoronalView
+                                                    volumeData={volumeInfo.volumeData}
+                                                    dimensions={volumeInfo.dimensions}
+                                                    sliceIndex={Math.floor(volumeInfo.dimensions[1] / 2)}
+                                                />
+                                                </div>
+                                        </div>
+                                    )}
+                                    {(!volumeInfo || isLoading) && (
+                                        <div className="image-item-placeholder">
+                                            <p>{isLoading ? 'Loading...' : 'Upload data to see 2D views'}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                        <div className="render-settings-panel">
-                            <h3>Render Settings</h3>
-                            <p>Brightness: 100%</p>
-                            <p>Contrast: 100%</p>
+                            {/* --- Panel 2: Metadata --- */}
+                            {activeTab === 'metadata' && (
+                                <div className="metadata-panel">
+                                    <h3>Metadata</h3>
+                                    <p>Patient ID: 12345</p>
+                                    <p>Study Date: 2025-09-30</p>
+                                </div>
+                            )}
+
+                            {/* --- Panel 3: Render Settings --- */}
+                            {activeTab === 'render' && (
+                                <div className="render-settings-panel">
+                                    <h3>Render Settings</h3>
+                                    <p>Brightness: 100%</p>
+                                    <p>Contrast: 100%</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </section>

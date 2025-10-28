@@ -3,8 +3,6 @@ import { BrowserRouter, Routes, Route } from 'react-router';
 
 import './App.css'
 
-import NavBar from './components/NavBar/NavBar';
-
 import Application from './pages/app';
 
 function App() {
