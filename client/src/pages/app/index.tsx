@@ -77,7 +77,7 @@ function App() {
     // Add a ref for our hidden file input
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // --- UPDATED: This function is called when the user selects a file ---
+    // --- This function is called when the user selects a file ---
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (files && files.length > 0) {
@@ -170,13 +170,13 @@ function App() {
                     )}
                 </section>
                 
-                {/* --- MODIFIED: Right Sidebar --- */}
+                {/* --- Right Sidebar --- */}
                 <section className='rightbar' style={{ width: `${settingsSidebarWidth}px` }}>
                     <div className="resizer" onMouseDown={(e) => handleMouseDown(e, 'settings')}></div>
                     
                     <div className="rightbar-content">
 
-                        {/* --- NEW: Tab Bar --- */}
+                        {/* --- Tab Bar --- */}
                         <div className="tab-bar">
                             <button
                                 className={`tab-button ${activeTab === 'mpr' ? 'active' : ''}`}
@@ -198,7 +198,7 @@ function App() {
                             </button>
                         </div>
 
-                        {/* --- NEW: Tab Content Area --- */}
+                        {/* --- Tab Content Area --- */}
                         <div className="tab-content-area">
                             
                             {/* --- Panel 1: MPR --- */}
@@ -207,7 +207,6 @@ function App() {
                                     <h3>2D Views</h3>
                                     {volumeInfo && (
                                         <div className="mpr-grid">
-                                            {/* --- (RESTORED) --- */}
                                             <div className="mpr-view">
                                                 <label>Axial</label>
                                                 <AxialView
