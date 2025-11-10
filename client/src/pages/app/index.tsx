@@ -8,6 +8,7 @@ import linkedinIcon from '../../assets/linkedin.png';
 import { AxialView } from '../../components/Preview/index';
 import { SagittalView } from '../../components/SagittalView';
 import { CoronalView } from '../../components/CoronalView';
+import { WebGPURenderer } from '../../components/WebGPU';
 
 // Interface to hold your processed volume data
 export interface VolumeInfo {
@@ -121,7 +122,6 @@ function App() {
 
     return (
         <div className="visualizer-container">
-            {/* TopBar (RESTORED) */}
             <header className="top-bar">
                 <div className="top-bar-left">
                     <span className="app-title">DICOMIZER</span>
@@ -147,7 +147,6 @@ function App() {
             </header>
             
             <main className='app-layout'>
-                {/* --- Renderer Section (RESTORED) --- */}
                 <section className='renderer'>
                     {!volumeInfo && !isLoading && (
                         <div className="placeholder-content">
@@ -162,11 +161,7 @@ function App() {
                         </div>
                     )}
                     {volumeInfo && (
-                        <div className="placeholder-content">
-                           <h1>Renderer Placeholder</h1>
-                           <p>Data is loaded!</p>
-                           {/* This is where your <WebGPURenderer> will go */}
-                        </div>
+                        <WebGPURenderer volumeInfo={volumeInfo} />
                     )}
                 </section>
                 
@@ -212,7 +207,7 @@ function App() {
                                                 <AxialView
                                                     volumeData={volumeInfo.volumeData}
                                                     dimensions={volumeInfo.dimensions}
-                                                    sliceIndex={Math.floor(volumeInfo.dimensions[2] / 2)}
+                                                    sliceIndex={Math.floor(volumeInfo.dimensions[2] / 2)} // Z-axis
                                                 />
                                             </div>
                                             <div className="mpr-view">
@@ -228,9 +223,9 @@ function App() {
                                                 <CoronalView
                                                     volumeData={volumeInfo.volumeData}
                                                     dimensions={volumeInfo.dimensions}
-                                                    sliceIndex={Math.floor(volumeInfo.dimensions[1] / 2)}
+                                                    sliceIndex={Math.floor(volumeInfo.dimensions[1] / 2)} // Y-axis
                                                 />
-                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                     {(!volumeInfo || isLoading) && (

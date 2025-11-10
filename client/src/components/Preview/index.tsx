@@ -1,20 +1,18 @@
-// src/components/AxialView/AxialView.tsx
-
 import React, { useRef, useEffect } from 'react';
-import './style.css'; // We'll create this file next
+import './style.css';
 
-interface AxialViewProps { // Renamed from SlicePreviewProps
+interface AxialViewProps {
     volumeData: Int16Array;
     dimensions: [number, number, number];
     sliceIndex: number;
 }
 
 // Define a default "window" to map HU values to grayscale
-const WINDOW_MIN = -1000; // e.g., Air
-const WINDOW_MAX = 2000;  // e.g., Bone
+const WINDOW_MIN = -1000; // Air
+const WINDOW_MAX = 2000;  // Bone
 const WINDOW_RANGE = WINDOW_MAX - WINDOW_MIN;
 
-export const AxialView: React.FC<AxialViewProps> = ({ // Renamed from SlicePreview
+export const AxialView: React.FC<AxialViewProps> = ({
     volumeData, 
     dimensions, 
     sliceIndex 

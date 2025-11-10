@@ -21,9 +21,6 @@ export const SagittalView: React.FC<SagittalViewProps> = ({
     
     const [width, height, depth] = dimensions;
 
-    // --- Axis mapping is swapped ---
-    // width equal to the volume's HEIGHT (y-axis)
-    // height equal to the volume's DEPTH (z-axis)
     const sagittalWidth = height; // Was 'depth'
     const sagittalHeight = depth;   // Was 'height'
     
@@ -38,8 +35,6 @@ export const SagittalView: React.FC<SagittalViewProps> = ({
 
         const imageDataArray = new Uint8ClampedArray(sagittalWidth * sagittalHeight * 4);
         
-        // --- Loops are swapped and re-ordered ---
-        // Iterate down the rows (Z-axis)
         for (let z = 0; z < sagittalHeight; z++) { 
             // Iterate across the columns (Y-axis)
             for (let y = 0; y < sagittalWidth; y++) { 
