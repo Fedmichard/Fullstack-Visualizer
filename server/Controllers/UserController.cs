@@ -37,22 +37,15 @@ public class UserController : ControllerBase {
             this query isn't executed when declared, it is executed when the query object is iterated over a loop
             In immediate execution the query is executed when it is declared
         */
-        var stocks = _context.Stocks.ToList();
 
-        return Ok(stocks);
+        return Ok("Test");
     }
 
     // Dotnet is going to use something called model binding that extracts our string id as a string
     // Turn it into an int, then pass it to the body of our function
     [HttpGet("{id}")]
     public IActionResult GetById([FromRoute] int id) {
-        var stock = _context.Stocks.Find(id);
 
-        if (stock == null) {
-            // Returns the not found http status code (404)
-            return NotFound();
-        }
-
-        return Ok(stock);
+        return Ok("stock");
     }
 }

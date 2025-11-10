@@ -51,9 +51,6 @@ public class ServerContext : DbContext {
         And another collection of all entities with comment datatype
         These make it easy to retrieve all entities for example
     */
-    public DbSet<Stock> Stocks { get; set; }
-    public DbSet<Comment> Comments { get; set; }
     public DbSet<User> Users { get; set; }
-    public DbSet<UploadedImage> Image { get; set; }
     public DbSet<Dicom> Dicoms { get; set; }
 }

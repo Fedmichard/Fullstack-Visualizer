@@ -20,6 +20,7 @@ body {
   user-select: none; /* Prevent text selection while resizing */
 }
 
+/* ... (Keep .visualizer-container, .app-layout, .top-bar, .renderer, etc. as they are) ... */
 .visualizer-container {
     display: flex;
     flex-direction: column;
@@ -38,6 +39,8 @@ body {
 
 /* --- TOP BAR STYLES --- */
 .top-bar {
+    position: relative;
+    z-index: 100;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -87,7 +90,7 @@ body {
     height: 24px;
     opacity: 0.7;
     transition: all 0.2s ease;
-    filter: invert(1); /* <-- ADDED THIS LINE */
+    filter: invert(1);
 }
 
 .top-bar-link:hover img {
@@ -98,99 +101,131 @@ body {
 /* --- RENDERER (CENTER) --- */
 .renderer {
     flex-grow: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
+    position: relative;
+    height: 100%;
 }
 
-/* --- IMAGE SIDEBAR --- */
-.image-sidebar {
-    position: relative;
-    background-color: var(--panel-dark);
-    border-left: 1px solid var(--line);
-    flex-shrink: 0;
-    overflow-y: auto;
-    padding: 0.5rem;
-    display: flex;
-    flex-direction: column;
+.placeholder-content {
+    /* --- NEW POSITIONING RULES --- */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    /* --- OLD RULES (Keep these) --- */
+    text-align: center;
+    color: var(--text-muted);
+}
+
+/* ... (Keep .image-item-placeholder) ... */
+.image-item-placeholder {
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    grid-column: 1 / -1; 
+    border-radius: 4px;
+    background-color: var(--bg-dark); /* Give it a background */
+    border: 1px dashed var(--line);
+}
+
+
+/* --- CUSTOM SCROLLBAR (reusable) --- */
+/* This is fine, as all panels still use it */
+.metadata-panel::-webkit-scrollbar,
+.render-settings-panel::-webkit-scrollbar,
+.mpr-panel::-webkit-scrollbar {
+  width: 14px;
+}
+/* ... (Keep all other scrollbar styles) ... */
+.metadata-panel::-webkit-scrollbar-track,
+.render-settings-panel::-webkit-scrollbar-track,
+.mpr-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.metadata-panel::-webkit-scrollbar-thumb,
+.render-settings-panel::-webkit-scrollbar-thumb,
+.mpr-panel::-webkit-scrollbar-thumb {
+  background-color: var(--panel-light);
+  border-radius: 10px;
+}
+
+.metadata-panel::-webkit-scrollbar-thumb,
+.render-settings-panel::-webkit-scrollbar-thumb,
+.mpr-panel::-webkit-scrollbar-thumb {
+  border: 4px solid var(--panel-dark); /* Matches .rightbar bg */
+}
+
+
+.metadata-panel::-webkit-scrollbar-thumb:hover,
+.render-settings-panel::-webkit-scrollbar-thumb:hover,
+.mpr-panel::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
+}
+
+
+/* --- MODIFIED: MPR PANEL STYLES --- */
+.mpr-panel {
+    padding: 1rem;
+    background-color: var(--panel-dark); /* Darker bg to group them */
+    overflow-y: auto; /* Allow this panel to scroll if needed */
+
+    /* --- NEW: Make panel fill tab content area --- */
+    height: 100%;
+    box-sizing: border-box; 
+
+    /* --- REMOVED: flex-shrink: 0; --- */
 
     /* Firefox Scrollbar Styles */
     scrollbar-width: thin;
     scrollbar-color: var(--panel-light) var(--panel-dark);
 }
 
-.image-sidebar h3 {
-    margin: 0.5rem;
-    font-size: 0.9rem;
+/* ... (Keep .mpr-panel h3, .mpr-grid, .mpr-view, .mpr-view label, .mpr-view .image-item) ... */
+.mpr-panel h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
     color: var(--text-muted);
-    text-align: center;
-    flex-shrink: 0;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
-.image-grid {
+/* This grid holds the 3 views */
+.mpr-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-    overflow-y: auto;
-    padding-right: 0.5rem; 
+    grid-template-columns: 1fr; /* A single column */
+    gap: 1rem;
 }
 
-.image-item {
-    background: #555;
-    border-radius: 4px;
-    padding: 0.5rem;
-    text-align: center;
-    font-size: 0.8rem;
-    aspect-ratio: 1 / 1;
+/* This holds one 2D view (canvas + label) */
+.mpr-view {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid transparent;
-    cursor: pointer;
+    flex-direction: column;
 }
 
-.image-item:hover {
-    border-color: var(--accent);
+.mpr-view label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    font-weight: 500;
 }
 
-/* --- CUSTOM SCROLLBAR (reusable) --- */
-.image-sidebar::-webkit-scrollbar,
-.metadata-panel::-webkit-scrollbar,
-.render-settings-panel::-webkit-scrollbar {
-  width: 14px;
-}
-
-.image-sidebar::-webkit-scrollbar-track,
-.metadata-panel::-webkit-scrollbar-track,
-.render-settings-panel::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.image-sidebar::-webkit-scrollbar-thumb,
-.metadata-panel::-webkit-scrollbar-thumb,
-.render-settings-panel::-webkit-scrollbar-thumb {
-  background-color: var(--panel-light);
-  border-radius: 10px;
-}
-
-/* Different border colors to match panel backgrounds */
-.image-sidebar::-webkit-scrollbar-thumb,
-.metadata-panel::-webkit-scrollbar-thumb,
-.render-settings-panel::-webkit-scrollbar-thumb {
-  border: 4px solid var(--panel-dark);
-}
-
-
-.image-sidebar::-webkit-scrollbar-thumb:hover,
-.metadata-panel::-webkit-scrollbar-thumb:hover,
-.render-settings-panel::-webkit-scrollbar-thumb:hover {
-  background-color: var(--accent);
+/* This targets the .image-item class from your SlicePreview component */
+.mpr-view .image-item {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #000;
 }
 
 
 /* --- RIGHTBAR (SETTINGS) --- */
 .rightbar {
+    /* ... (Keep existing .rightbar styles) ... */
     background-color: var(--panel-dark);
     display: flex;
     position: relative;
@@ -199,57 +234,88 @@ body {
 }
 
 .resizer {
+    /* ... (Keep existing .resizer styles) ... */
     position: absolute;
     left: -2px;
     top: 0;
     bottom: 0;
     width: 5px;
     cursor: col-resize;
-    z-index: 10;
+    z-index: 5;
     transition: background-color 0.2s;
 }
 
-.resizer-horizontal {
-    height: 5px;
-    width: 100%;
-    cursor: row-resize;
-    flex-shrink: 0;
-    transition: background-color 0.2s;
-    border-top: 1px solid var(--line);
-}
+/* --- REMOVED: .resizer-horizontal --- */
 
 .resizer:hover,
-.resizer:active,
-.resizer-horizontal:hover,
-.resizer-horizontal:active {
+.resizer:active {
     background-color: rgba(34, 211, 238, 0.5);
 }
+/* --- REMOVED: .resizer-horizontal hover/active states --- */
+
 
 .rightbar-content {
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* This stacks tab-bar on top of tab-content-area */
     width: 100%;
     height: 100%;
+    overflow: hidden; 
 }
+
+/* --- NEW: TAB STYLES --- */
+.tab-bar {
+    display: flex;
+    flex-shrink: 0; /* Prevents tab bar from shrinking */
+    border-bottom: 1px solid var(--line);
+}
+
+.tab-button {
+    flex: 1 1 0; /* Each button takes 1/3 of the space */
+    padding: 0.75rem 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px; /* Makes active border overlap parent's border */
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+    color: var(--text-light);
+}
+
+.tab-button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.tab-content-area {
+    flex-grow: 1; /* This fills the remaining height */
+    overflow: hidden; /* This is critical */
+}
+/* --- END NEW TAB STYLES --- */
+
 
 .metadata-panel,
 .render-settings-panel {
     padding: 1rem;
     overflow-y: auto;
     
+    /* --- NEW: Make panels fill tab content area --- */
+    height: 100%;
+    box-sizing: border-box;
+
     /* Firefox Scrollbar Styles */
     scrollbar-width: thin;
     scrollbar-color: var(--panel-light) var(--panel-dark);
 }
 
-.metadata-panel {
-    flex-shrink: 0;
-}
+/* --- REMOVED: flex-shrink: 0; from .metadata-panel --- */
 
-.render-settings-panel {
-    flex-grow: 1;
-    min-height: 0;
-}
+/* --- REMOVED: flex-grow: 1; and min-height: 0; from .render-settings-panel --- */
 
 .metadata-panel h3,
 .render-settings-panel h3 {
