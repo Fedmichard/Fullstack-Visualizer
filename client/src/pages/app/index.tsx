@@ -8,6 +8,7 @@ import linkedinIcon from '../../assets/linkedin.png';
 import { AxialView } from '../../components/Preview/index';
 import { SagittalView } from '../../components/SagittalView';
 import { CoronalView } from '../../components/CoronalView';
+import { WebGPURenderer } from '../../components/WebGPU';
 
 // Interface to hold your processed volume data
 export interface VolumeInfo {
@@ -77,7 +78,7 @@ function App() {
     // Add a ref for our hidden file input
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // --- UPDATED: This function is called when the user selects a file ---
+    // --- This function is called when the user selects a file ---
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (files && files.length > 0) {
@@ -121,7 +122,6 @@ function App() {
 
     return (
         <div className="visualizer-container">
-            {/* TopBar (RESTORED) */}
             <header className="top-bar">
                 <div className="top-bar-left">
                     <span className="app-title">DICOMIZER</span>
@@ -147,7 +147,6 @@ function App() {
             </header>
             
             <main className='app-layout'>
-                {/* --- Renderer Section (RESTORED) --- */}
                 <section className='renderer'>
                     {!volumeInfo && !isLoading && (
                         <div className="placeholder-content">
@@ -162,21 +161,17 @@ function App() {
                         </div>
                     )}
                     {volumeInfo && (
-                        <div className="placeholder-content">
-                           <h1>Renderer Placeholder</h1>
-                           <p>Data is loaded!</p>
-                           {/* This is where your <WebGPURenderer> will go */}
-                        </div>
+                        <WebGPURenderer volumeInfo={volumeInfo} />
                     )}
                 </section>
                 
-                {/* --- MODIFIED: Right Sidebar --- */}
+                {/* --- Right Sidebar --- */}
                 <section className='rightbar' style={{ width: `${settingsSidebarWidth}px` }}>
                     <div className="resizer" onMouseDown={(e) => handleMouseDown(e, 'settings')}></div>
                     
                     <div className="rightbar-content">
 
-                        {/* --- NEW: Tab Bar --- */}
+                        {/* --- Tab Bar --- */}
                         <div className="tab-bar">
                             <button
                                 className={`tab-button ${activeTab === 'mpr' ? 'active' : ''}`}
@@ -198,7 +193,7 @@ function App() {
                             </button>
                         </div>
 
-                        {/* --- NEW: Tab Content Area --- */}
+                        {/* --- Tab Content Area --- */}
                         <div className="tab-content-area">
                             
                             {/* --- Panel 1: MPR --- */}
@@ -207,13 +202,12 @@ function App() {
                                     <h3>2D Views</h3>
                                     {volumeInfo && (
                                         <div className="mpr-grid">
-                                            {/* --- (RESTORED) --- */}
                                             <div className="mpr-view">
                                                 <label>Axial</label>
                                                 <AxialView
                                                     volumeData={volumeInfo.volumeData}
                                                     dimensions={volumeInfo.dimensions}
-                                                    sliceIndex={Math.floor(volumeInfo.dimensions[2] / 2)}
+                                                    sliceIndex={Math.floor(volumeInfo.dimensions[2] / 2)} // Z-axis
                                                 />
                                             </div>
                                             <div className="mpr-view">
@@ -229,9 +223,9 @@ function App() {
                                                 <CoronalView
                                                     volumeData={volumeInfo.volumeData}
                                                     dimensions={volumeInfo.dimensions}
-                                                    sliceIndex={Math.floor(volumeInfo.dimensions[1] / 2)}
+                                                    sliceIndex={Math.floor(volumeInfo.dimensions[1] / 2)} // Y-axis
                                                 />
-                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                     {(!volumeInfo || isLoading) && (

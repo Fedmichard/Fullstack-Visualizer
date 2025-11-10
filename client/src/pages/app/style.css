@@ -101,13 +101,19 @@ body {
 /* --- RENDERER (CENTER) --- */
 .renderer {
     flex-grow: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
+    position: relative;
+    height: 100%;
 }
 
 .placeholder-content {
+    /* --- NEW POSITIONING RULES --- */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    /* --- OLD RULES (Keep these) --- */
     text-align: center;
     color: var(--text-muted);
 }
@@ -163,7 +169,7 @@ body {
 /* --- MODIFIED: MPR PANEL STYLES --- */
 .mpr-panel {
     padding: 1rem;
-    background-color: var(--bg-dark); /* Darker bg to group them */
+    background-color: var(--panel-dark); /* Darker bg to group them */
     overflow-y: auto; /* Allow this panel to scroll if needed */
 
     /* --- NEW: Make panel fill tab content area --- */

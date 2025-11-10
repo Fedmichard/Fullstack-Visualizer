@@ -1,0 +1,27 @@
+/* Make the parent container (your component's div)
+  fill its container. You might need to make 
+  html and body 100% high as well.
+*/
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Make your renderer component's main div
+  fill 100% of its parent's height.
+*/
+.renderer {
+    width: 100%;
+    height: 100%;
+    display: block; /* Make it a block element */
+}
+
+/* Make the canvas fill 100% of its parent 
+  (the ".renderer" div).
+*/
+.renderer canvas {
+    width: 100%;
+    height: 100%;
+    display: block; /* Removes any default spacing */
+}
