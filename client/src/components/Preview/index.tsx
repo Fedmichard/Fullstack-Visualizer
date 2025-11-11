@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import './style.css';
 
 interface AxialViewProps {
+    // translate the volumeData from bytes back into a 16 bit signed array
     volumeData: Int16Array;
     dimensions: [number, number, number];
     sliceIndex: number;

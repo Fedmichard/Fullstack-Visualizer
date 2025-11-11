@@ -5,10 +5,10 @@ namespace server.DTOs;
 public class VolumeDataDto
 {
     public int[] Dimensions { get; }
-    public float[] VoxelSpacing { get; }
+    public double[] VoxelSpacing { get; }
     public byte[] VoxelData { get; }
 
-    public VolumeDataDto(int[] dimensions, float[] voxelSpacing, byte[] voxelData)
+    public VolumeDataDto(int[] dimensions, double[] voxelSpacing, byte[] voxelData)
     {
         Dimensions = dimensions;
         VoxelSpacing = voxelSpacing;
