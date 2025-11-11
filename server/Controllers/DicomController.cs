@@ -18,24 +18,46 @@ public class DicomController : ControllerBase
     [RequestSizeLimit(1_000_000_000)]
     public IActionResult ProcessDicom(IFormFileCollection files)
     {
-        if (files == null || files.Count == 0) {
+        if (files == null || files.Count == 0)
+        {
             return BadRequest("No DICOM file uploaded.");
         }
 
         try
         {
-            // --- 1. Load all DICOM files (Your improved sorting) ---
-            var parsedFiles = files
-                .Select(file => DicomFile.Open(file.OpenReadStream()))
-                .OrderBy(dcm =>
-                {
-                    if (dcm.Dataset.TryGetValues(DicomTag.ImagePositionPatient, out double[] pos) && pos.Length >= 3)
-                        return (decimal)pos[2];
-                    if (dcm.Dataset.TryGetSingleValue(DicomTag.SliceLocation, out decimal sl))
-                        return sl;
-                    return 0m;
-                })
-                .ToList();
+            // parsedFiles list to be filled with our dicoms
+            List<DicomFile> parsedFiles = new List<DicomFile>();
+
+            // for every single file from our uploaded files
+            // turn them into dicom file objects and insert into
+            // parsed files folder
+            foreach (var file in files)
+            {
+                var dcm = DicomFile.Open(file.OpenReadStream());
+                parsedFiles.Add(dcm);
+            }
+
+            // now we order our parsedFiles 
+            parsedFiles.Sort((a, b) =>
+            {
+                decimal zA = 0m;
+                decimal zB = 0m;
+
+                // Try to get Z position for slice A
+                if (a.Dataset.TryGetValues(DicomTag.ImagePositionPatient, out double[] posA) && posA.Length >= 3)
+                    zA = (decimal)posA[2];
+                else if (a.Dataset.TryGetSingleValue(DicomTag.SliceLocation, out decimal slA))
+                    zA = slA;
+
+                // Try to get Z position for slice B
+                if (b.Dataset.TryGetValues(DicomTag.ImagePositionPatient, out double[] posB) && posB.Length >= 3)
+                    zB = (decimal)posB[2];
+                else if (b.Dataset.TryGetSingleValue(DicomTag.SliceLocation, out decimal slB))
+                    zB = slB;
+
+                // Sort ascending (smallest z first)
+                return zA.CompareTo(zB);
+            });
 
             var firstSlice = parsedFiles.First();
             int width = firstSlice.Dataset.GetSingleValueOrDefault(DicomTag.Columns, (ushort)0);
@@ -43,36 +65,60 @@ public class DicomController : ControllerBase
             int depth = parsedFiles.Count;
 
             if (width == 0 || height == 0)
+            {
                 return BadRequest("Invalid DICOM image dimensions.");
+            }
 
-            // --- 2. Pixel Spacing ---
-            var pixelSpacing = firstSlice.Dataset.TryGetValues(DicomTag.PixelSpacing, out float[] spacing)
-                ? spacing : new float[] { 1f, 1f };
+            // --- Retrieve Pixel Spacing ---
+            var pixelSpacing = firstSlice.Dataset.TryGetValues(DicomTag.PixelSpacing, out double[] spacing)
+                // if it doesn't exist default x, y to 1
+                ? spacing
+                : new double[] { 1.0, 1.0 };
 
-            // --- 3. Compute Z Spacing ---
-            float zSpacing;
+            // --- Compute Z Spacing, space between each slice ---
+            double zSpacing = 1.0;
+
             if (depth > 1)
             {
-                var z1 = firstSlice.Dataset.TryGetSingleValue(DicomTag.SliceLocation, out decimal loc1) ? loc1 : 0m;
-                var z2 = parsedFiles[1].Dataset.TryGetSingleValue(DicomTag.SliceLocation, out decimal loc2) ? loc2 : z1;
-                zSpacing = (float)Math.Abs(z2 - z1);
+                var first = parsedFiles[0];
+                var second = parsedFiles[1];
+
+                // Prefer ImagePositionPatient for spacing
+                if (first.Dataset.TryGetValues(DicomTag.ImagePositionPatient, out double[] pos1) &&
+                    second.Dataset.TryGetValues(DicomTag.ImagePositionPatient, out double[] pos2) &&
+                    pos1.Length >= 3 && pos2.Length >= 3)
+                {
+                    zSpacing = Math.Abs(pos2[2] - pos1[2]);
+                }
+                else if (first.Dataset.TryGetSingleValue(DicomTag.SliceThickness, out double sliceThickness))
+                {
+                    // Fallback to slice thickness if no ImagePositionPatient
+                    zSpacing = sliceThickness;
+                }
             }
-            else
+            else if (firstSlice.Dataset.TryGetSingleValue(DicomTag.SliceThickness, out double singleThickness))
             {
-                zSpacing = firstSlice.Dataset.GetSingleValueOrDefault(DicomTag.SliceThickness, 1f);
+                zSpacing = singleThickness;
             }
 
-            // --- 4. Allocate ---
+            // --- Sanity check to avoid zero spacing ---
+            if (zSpacing <= 0.0)
+                zSpacing = 1.0;
+
+            // --- Allocate Volume ---
             int sliceSize = width * height;
             int totalVoxels = sliceSize * depth;
+            // using short since it's 16 bits for our HU values
+            // we make the array the full volume size
+            // and will fill it afterwards
             short[] fullVolumeData = new short[totalVoxels];
-            
-            // --- 5. Fill voxel data ---
+
+            // --- Fill voxel data ---
             for (int i = 0; i < depth; i++)
             {
                 var slice = parsedFiles[i];
 
-                // --- Process 3D Voxel Data (Your correct logic) ---
+                // --- Process 3D Voxel Data ---
                 var pixelData = DicomPixelData.Create(slice.Dataset);
                 var frame = pixelData.GetFrame(0);
                 var rawBytes = frame.Data;
@@ -93,14 +139,14 @@ public class DicomController : ControllerBase
                 }
             }
 
-            // --- 6. Convert to byte[] for DTO ---
+            // --- Convert to byte[] for DTO ---
             byte[] voxelDataBytes = new byte[fullVolumeData.Length * 2];
             Buffer.BlockCopy(fullVolumeData, 0, voxelDataBytes, 0, voxelDataBytes.Length);
 
-            // --- 7. Package result ---
+            // --- Package result ---
             var volumeDto = new VolumeDataDto(
                 dimensions: new int[] { width, height, depth },
-                voxelSpacing: new float[] { pixelSpacing[0], pixelSpacing[1], zSpacing },
+                voxelSpacing: new double[] { pixelSpacing[0], pixelSpacing[1], zSpacing },
                 voxelData: voxelDataBytes
             );
 
