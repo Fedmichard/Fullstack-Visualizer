@@ -102,8 +102,9 @@ public class DicomController : ControllerBase
             }
 
             // --- Sanity check to avoid zero spacing ---
-            if (zSpacing <= 0.0)
+            if (zSpacing <= 0.0) {
                 zSpacing = 1.0;
+            }
 
             // --- Allocate Volume ---
             int sliceSize = width * height;
