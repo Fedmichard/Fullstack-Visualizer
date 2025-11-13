@@ -215,6 +215,38 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 ],
             });
 
+            // volume texture
+            const volumeTexture = device.createTexture({
+                size: [512, 512, 245],
+                format: "r16float", // or "r32float" if you want more precision
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            });
+
+            // write to volume texture
+
+            // 1D transfer function texture
+
+            // texture sampler
+            const sampler = device.createSampler({
+                magFilter: "linear",
+                minFilter: "linear",
+            });
+
+            // bind group for textures
+            const volumeBindGroup = device.createBindGroup({
+                layout: pipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: sampler,
+                    },
+                    {
+                        binding: 1,
+                        resource: volumeTexture.createView({ dimension: '3d' }),
+                    },
+                ],
+            });
+
             const aspect = canvas.width / canvas.height;
             
             const projectionMatrix = mat4.perspective((2 * Math.PI) / 5, aspect, 1, 100.0);
@@ -285,6 +317,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 const pass = encoder.beginRenderPass(renderPassDescriptor);
                 pass.setPipeline(pipeline);
                 pass.setBindGroup(0, uniformBindGroup);
+                pass.setBindGroup(1, volumeBindGroup);
                 pass.setVertexBuffer(0, vertexBuffer);
                 pass.draw(cubeVertexCount);
                 pass.end();
