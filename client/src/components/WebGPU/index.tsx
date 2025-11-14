@@ -12,7 +12,6 @@ import {
 } from '../../assets/Meshes/cube';
 
 import { VolumeInfo } from "../../pages/app";
-import { buffer } from "stream/consumers";
 
 interface WebGPURendererProps {
     volumeInfo: VolumeInfo;
@@ -38,7 +37,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
             // if canvas element doesn't exist exit
             if (!canvasRef) return;
 
-            // is like your window
+            // canvas is like your window
             const canvas = canvasRef.current;
             if (!canvas) {
                 fail('Failed to get WebGPU canvas');

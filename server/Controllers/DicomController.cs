@@ -69,17 +69,18 @@ public class DicomController : ControllerBase
                 return BadRequest("Invalid DICOM image dimensions.");
             }
 
-            // --- Retrieve Pixel Spacing ---
+            // Retrieve Pixel Spacing ---
             var pixelSpacing = firstSlice.Dataset.TryGetValues(DicomTag.PixelSpacing, out double[] spacing)
                 // if it doesn't exist default x, y to 1
                 ? spacing
                 : new double[] { 1.0, 1.0 };
 
-            // --- Compute Z Spacing, space between each slice ---
+            // Compute Z Spacing, space between each slice
             double zSpacing = 1.0;
 
             if (depth > 1)
             {
+                // get the first and second parsed files from sorted list of Dicoms
                 var first = parsedFiles[0];
                 var second = parsedFiles[1];
 
@@ -88,6 +89,7 @@ public class DicomController : ControllerBase
                     second.Dataset.TryGetValues(DicomTag.ImagePositionPatient, out double[] pos2) &&
                     pos1.Length >= 3 && pos2.Length >= 3)
                 {
+                    // if the image position patient exists in both of these, 
                     zSpacing = Math.Abs(pos2[2] - pos1[2]);
                 }
                 else if (first.Dataset.TryGetSingleValue(DicomTag.SliceThickness, out double sliceThickness))
@@ -112,39 +114,51 @@ public class DicomController : ControllerBase
             // using short since it's 16 bits for our HU values
             // we make the array the full volume size
             // and will fill it afterwards
+            // HU values can go from -1000 to +3000
+            // we make it a 16 bit signed int one because HU values can be negative
+            // it can't be an 8 bit signed int because that's only -128 to 127 (0-255 unsigned)
             short[] fullVolumeData = new short[totalVoxels];
 
-            // --- Fill voxel data ---
+            // Fill voxel data
             for (int i = 0; i < depth; i++)
             {
                 var slice = parsedFiles[i];
 
-                // --- Process 3D Voxel Data ---
+                // Process 3D Voxel Data
                 var pixelData = DicomPixelData.Create(slice.Dataset);
                 var frame = pixelData.GetFrame(0);
+                // frame.data returns byte[] FellowOakDicom.IO.Buffer.IByteBuffer.Data { get; } a byte
+                // you must convert this byte value to 16 bits (because that's what is stored in the scanner)
                 var rawBytes = frame.Data;
 
                 var slope = slice.Dataset.GetSingleValueOrDefault(DicomTag.RescaleSlope, 1.0f);
                 var intercept = slice.Dataset.GetSingleValueOrDefault(DicomTag.RescaleIntercept, 0.0f);
 
+                // the raw pixel data is 16 bit unsigned int (no negative values)
                 ushort[] slicePixels16 = new ushort[sliceSize];
                 Buffer.BlockCopy(rawBytes, 0, slicePixels16, 0, Math.Min(rawBytes.Length, sliceSize * 2));
 
+                // this takes the raw pixel data and turns it into the HU vlaues
+                // this offset get's the xy raw values of the slice i
                 int sliceOffset = i * sliceSize;
+                /// for every pixel on the slice
                 for (int k = 0; k < sliceSize; k++)
                 {
+                    // compute the slope intercept formula
                     double val = slicePixels16[k] * (double)slope + (double)intercept;
                     if (val > short.MaxValue) val = short.MaxValue;
                     if (val < short.MinValue) val = short.MinValue;
+                    // add the slice data to the fullVolumeData 
                     fullVolumeData[sliceOffset + k] = (short)val;
                 }
             }
 
-            // --- Convert to byte[] for DTO ---
+            // Convert to byte[] for DTO
+            // take the 16 bit data and convert it to 8 bits for server transfer
             byte[] voxelDataBytes = new byte[fullVolumeData.Length * 2];
             Buffer.BlockCopy(fullVolumeData, 0, voxelDataBytes, 0, voxelDataBytes.Length);
 
-            // --- Package result ---
+            // Package result
             var volumeDto = new VolumeDataDto(
                 dimensions: new int[] { width, height, depth },
                 voxelSpacing: new double[] { pixelSpacing[0], pixelSpacing[1], zSpacing },
