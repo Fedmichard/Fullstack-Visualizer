@@ -45,6 +45,17 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 return;
             }
 
+            // 'volumeInfo.volumeData' is your Int16Array of HU values
+            const huData = volumeInfo.volumeData; 
+
+            // Create a new Float32Array to hold the converted values
+            const floatVolumeData = new Float32Array(huData.length);
+
+            // Loop through and convert each Int16 value to a Float32 value
+            for (let i = 0; i < huData.length; i++) {
+                floatVolumeData[i] = huData[i]; 
+            }
+
             const displayWidth = canvas.clientWidth;
             const displayHeight = canvas.clientHeight;
             
@@ -122,6 +133,8 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 }
 
                 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
+                @group(0) @binding(1) var mySampler : sampler;
+                @group(0) @binding(2) var myVolume : texture_3d<f32>;
 
                 @vertex fn vs(
                     @location(0) position : vec4f,
@@ -138,15 +151,52 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     @location(0) fragUV: vec2f,
                     @location(1) fragPosition: vec4f
                 ) -> @location(0) vec4f {
-                    return fragPosition;
+                    let uvw = fragPosition.xyz;
+                    let hu = textureSampleLevel(myVolume, mySampler, uvw, 0.0).r;
+                    let val = (hu + 1000.0) / 2000.0;
+
+                    return vec4<f32>(vec3<f32>(val), 1.0);
                 }
+
                 `,
+            });
+
+            // Manually define the layout for our bind group
+            // Manually define the layout for our bind group
+            const bindGroupLayout = device.createBindGroupLayout({
+                label: 'Main Bind Group Layout',
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        buffer: { type: 'uniform' }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: { type: 'non-filtering' }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: { 
+                            sampleType: 'unfilterable-float',
+                            viewDimension: '3d' 
+                        }
+                    }
+                ] as const // <-- ADD THIS LINE
+            });
+
+            // Create a pipeline layout using our manual bind group layout
+            const pipelineLayout = device.createPipelineLayout({
+                label: 'Main Pipeline Layout',
+                bindGroupLayouts: [bindGroupLayout] // Pass it in as an array
             });
 
             // graphics pipeline!
             const pipeline = device.createRenderPipeline({
                 label: 'hardcoded red triangle pipeline',
-                layout: 'auto',
+                layout: pipelineLayout,
                 vertex: {
                     entryPoint: 'vs',
                     module,
@@ -186,7 +236,6 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 }
             });
 
-
             const depthTexture = device.createTexture({
                 size: [canvas.width, canvas.height],
                 format: 'depth24plus',
@@ -202,9 +251,44 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
             });
 
+            // volume texture
+            const volumeTexture = device.createTexture({
+                size: {
+                    width: volumeInfo.dimensions[0],
+                    height: volumeInfo.dimensions[1],
+                    depthOrArrayLayers: volumeInfo.dimensions[2],
+                },
+                dimension: "3d",
+                format: "r32float",
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            });
+
+            device.queue.writeTexture(
+                {
+                    texture: volumeTexture
+                },
+                floatVolumeData,
+                {
+                    bytesPerRow: volumeInfo.dimensions[0] * 4,
+                    rowsPerImage: volumeInfo.dimensions[1]
+                },
+                {
+                    width: volumeInfo.dimensions[0],
+                    height: volumeInfo.dimensions[1], 
+                    depthOrArrayLayers: volumeInfo.dimensions[2]},
+            )
+
+            // 1D transfer function texture
+
+            // texture sampler
+            const sampler = device.createSampler({
+                magFilter: "nearest",
+                minFilter: "nearest",
+            });
+
             // to read a descriptor you need a descriptor set
-            const uniformBindGroup = device.createBindGroup({
-                layout: pipeline.getBindGroupLayout(0),
+            const bindGroup = device.createBindGroup({
+                layout: bindGroupLayout,
                 entries: [
                     {
                         binding: 0,
@@ -212,36 +296,12 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                             buffer: uniformBuffer,
                         },
                     },
-                ],
-            });
-
-            // volume texture
-            const volumeTexture = device.createTexture({
-                size: [512, 512, 245],
-                format: "r16float", // or "r32float" if you want more precision
-                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-            });
-
-            // write to volume texture
-
-            // 1D transfer function texture
-
-            // texture sampler
-            const sampler = device.createSampler({
-                magFilter: "linear",
-                minFilter: "linear",
-            });
-
-            // bind group for textures
-            const volumeBindGroup = device.createBindGroup({
-                layout: pipeline.getBindGroupLayout(0),
-                entries: [
                     {
-                        binding: 0,
+                        binding: 1,
                         resource: sampler,
                     },
                     {
-                        binding: 1,
+                        binding: 2,
                         resource: volumeTexture.createView({ dimension: '3d' }),
                     },
                 ],
@@ -316,8 +376,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 // make a renderpass encoder to start rendering
                 const pass = encoder.beginRenderPass(renderPassDescriptor);
                 pass.setPipeline(pipeline);
-                pass.setBindGroup(0, uniformBindGroup);
-                pass.setBindGroup(1, volumeBindGroup);
+                pass.setBindGroup(0, bindGroup);
                 pass.setVertexBuffer(0, vertexBuffer);
                 pass.draw(cubeVertexCount);
                 pass.end();
