@@ -46,24 +46,20 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
 
             // 'volumeInfo.volumeData' is the Int16Array of HU values
             // these values are signed (not 0 - 25535) but -32768 - 32767
-            // we need to normalize these values so we can apply linear filtering
+            // we need to have unsigned for linear filtering
             // and we will convert them to unsigned so we can get them from 0 -1 
             // so we can index our transfer function properly and so the gpu can read it
             const huData = volumeInfo.volumeData; 
 
-            // clamped range
-            const huMin = -1024.0;
-            const huMax = 2000.0;
-            const huRange = huMax - huMin;
-
             // Create a new Float32Array to hold the converted values
-            const normalizedData = new Uint16Array(huData.length);
-    
+            const unsignedData = new Uint16Array(huData.length);
+            
             // Loop through and convert each Int16 value to a Float32 value
             for (let i = 0; i < huData.length; i++) {
-                normalizedData[i] = huData[i]; 
+                // giving it a shift of 32768 (reference ossium)
+                unsignedData[i] = huData[i] + 2**15; 
             }
-
+            
             const displayWidth = canvas.clientWidth;
             const displayHeight = canvas.clientHeight;
             
@@ -132,40 +128,75 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 code: /* wgsl */ `
                 struct Uniforms {
                     modelViewProjectionMatrix : mat4x4f,
-                }
+                };
 
                 struct VertexOutput {
                     @builtin(position) Position : vec4f,
-                    @location(0) fragUV : vec2f,
-                    @location(1) fragPosition: vec4f,
-                }
+                    @location(0) uv : vec2f,
+                    @location(1) pos01 : vec3f,     // the cube position normalized to [0,1]
+                };
 
                 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
-                @group(0) @binding(1) var mySampler : sampler;
-                @group(0) @binding(2) var myVolume : texture_3d<f16>;
+                @group(0) @binding(1) var samp : sampler;
+                @group(0) @binding(2) var volumeTex : texture_3d<f32>;
 
-                @vertex fn vs(
+                @vertex
+                fn vs(
                     @location(0) position : vec4f,
                     @location(1) uv : vec2f
                 ) -> VertexOutput {
-                    var output : VertexOutput;
-                    output.Position = uniforms.modelViewProjectionMatrix * position;
-                    output.fragUV = uv;
-                    output.fragPosition = 0.5 * (position + vec4f(1.0, 1.0, 1.0, 1.0));
-                    return output;
+                    var out : VertexOutput;
+
+                    out.Position = uniforms.modelViewProjectionMatrix * position;
+                    out.uv = uv;
+
+                    // Convert cube [-1,+1] → [0,1]
+                    out.pos01 = 0.5 * (position.xyz + vec3f(1.0));
+
+                    return out;
                 }
 
-                @fragment fn fs(
-                    @location(0) fragUV: vec2f,
-                    @location(1) fragPosition: vec4f
+                @fragment
+                fn fs(
+                    @location(0) uv: vec2f,
+                    @location(1) pos01: vec3f
                 ) -> @location(0) vec4f {
-                    let uvw = fragPosition.xyz;
-                    let hu = textureSampleLevel(myVolume, mySampler, uvw, 0.0).r;
-                    let val = (hu + 1000.0) / 2000.0;
 
-                    return vec4<f32>(vec3<f32>(val), 1.0);
+                    // --- Ray setup ---
+                    var pos = pos01;
+                    let dir = normalize(pos01 - vec3f(0.5));  // simple view direction
+
+                    let steps = 128u;
+                    let stepSize = 1.0 / f32(steps);
+
+                    var acc = 0.0; // accumulated grayscale
+
+                    // --- Raymarch ---
+                    for (var i = 0u; i < steps; i++) {
+
+                        // If ray escaped cube
+                        if (pos.x < 0.0 || pos.x > 1.0 ||
+                            pos.y < 0.0 || pos.y > 1.0 ||
+                            pos.z < 0.0 || pos.z > 1.0) {
+                            break;
+                        }
+
+                        // Sample intensity from RG8UNORM (0 → 1)
+                        let sampleVal = textureSampleLevel(volumeTex, samp, pos, 0.0).r;
+
+                        // Convert back to full 16-bit unsigned HU-like range
+                        let hu16 = sampleVal * 65535.0;
+
+                        // Simple grayscale visualization
+                        let shade = hu16 / 4096.0;  // tune as needed
+                        acc += shade * 0.02;
+
+                        pos += dir * stepSize;
+                    }
+
+                    let g = clamp(acc, 0.0, 1.0);
+                    return vec4f(g, g, g, 1.0);
                 }
-
                 `,
             });
 
@@ -271,12 +302,11 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 // there's a few things we want for this texture
                 // 1. we want to have linear filtering (for smoothness)
                 // 2. we need it to be in 16 bits
-                // we use r16unorm because each HU value is r16
-                // linear filtering is done on the gpu which only accepts certain types,
-                // the gpu can only handle normalize values for filtering
-                // the values of each r16 needs to be normalized
-                // we use use unsigned for data symmetry
-                format: "r16uint",
+                // we use rg8unorm because each HU value is 16 bits split into high and low byte
+                // linear filtering is done on the gpu which only accepts unsigned values,
+                // you can't use linear filtering
+                // Also apparently pure integer formats don't allow any form of filtering so we use 
+                format: "rg8unorm",
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
             });
 
@@ -284,7 +314,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 {
                     texture: volumeTexture
                 },
-                normalizedData,
+                unsignedData,
                 {
                     offset: 0,
                     // change dimensions to 2 bytes per voxel
@@ -332,22 +362,22 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
 
             const modelViewProjectionMatrix = mat4.create();
 
-            const getTransformationMatrix = ():Float32Array => {
+            const getTransformationMatrix = (): Float32Array => {
                 const viewMatrix = mat4.identity();
+
+                // Move camera back so cube is fully visible
                 mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
 
                 const now = Date.now() / 1000;
-                mat4.rotate(
-                    viewMatrix,
-                    vec3.fromValues(Math.sin(now), Math.cos(now), 0),
-                    1,
-                    viewMatrix
-                );
+
+                // Rotate around Y axis only
+                mat4.rotateY(viewMatrix, now * 0.7, viewMatrix);
 
                 mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
 
                 return modelViewProjectionMatrix;
-            }
+            };
+
 
 
             // main render function
