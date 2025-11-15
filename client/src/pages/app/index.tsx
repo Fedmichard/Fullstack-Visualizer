@@ -14,21 +14,16 @@ import { WebGPURenderer } from '../../components/WebGPU';
 export interface VolumeInfo {
     dimensions: [number, number, number];
     voxelSpacing: [number, number, number];
-    volumeData: Int16Array; // The decoded signed 16-bit data
+    volumeData: Int16Array; // Convert byte to 16
 }
 
-// --- NEW: A type for your tab IDs ---
 type TabID = 'mpr' | 'metadata' | 'render';
 
 function App() {
-    // --- MODIFIED: Simplified state ---
     const [settingsSidebarWidth, setSettingsSidebarWidth] = useState(300);
-    // --- REMOVED: Panel height states are no longer needed ---
     
-    // --- This state is now used to control the UI ---
     const [activeTab, setActiveTab] = useState<TabID>('mpr');
 
-    // --- MODIFIED: Simplified resizing state ---
     const [resizingPanel, setResizingPanel] = useState<'settings' | null>(null); // Only 'settings' is needed
     const dragInfo = useRef({ initialPos: 0, initialSize: 0 });
 
@@ -36,7 +31,6 @@ function App() {
     const [volumeInfo, setVolumeInfo] = useState<VolumeInfo | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // --- MODIFIED: Simplified Resizing Logic ---
     const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, panel: 'settings') => { // Only 'settings'
         e.preventDefault();
         setResizingPanel(panel);
@@ -50,7 +44,6 @@ function App() {
         setResizingPanel(null);
     }, []);
     
-    // --- MODIFIED: Simplified MouseMove handler ---
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!resizingPanel) return;
         
@@ -78,7 +71,6 @@ function App() {
     // Add a ref for our hidden file input
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // --- This function is called when the user selects a file ---
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (files && files.length > 0) {
