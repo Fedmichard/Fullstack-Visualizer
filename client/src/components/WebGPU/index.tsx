@@ -44,15 +44,24 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 return;
             }
 
-            // 'volumeInfo.volumeData' is your Int16Array of HU values
+            // 'volumeInfo.volumeData' is the Int16Array of HU values
+            // these values are signed (not 0 - 25535) but -32768 - 32767
+            // we need to normalize these values so we can apply linear filtering
+            // and we will convert them to unsigned so we can get them from 0 -1 
+            // so we can index our transfer function properly and so the gpu can read it
             const huData = volumeInfo.volumeData; 
 
-            // Create a new Float32Array to hold the converted values
-            const floatVolumeData = new Float32Array(huData.length);
+            // clamped range
+            const huMin = -1024.0;
+            const huMax = 2000.0;
+            const huRange = huMax - huMin;
 
+            // Create a new Float32Array to hold the converted values
+            const normalizedData = new Uint16Array(huData.length);
+    
             // Loop through and convert each Int16 value to a Float32 value
             for (let i = 0; i < huData.length; i++) {
-                floatVolumeData[i] = huData[i]; 
+                normalizedData[i] = huData[i]; 
             }
 
             const displayWidth = canvas.clientWidth;
@@ -133,7 +142,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
 
                 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
                 @group(0) @binding(1) var mySampler : sampler;
-                @group(0) @binding(2) var myVolume : texture_3d<f32>;
+                @group(0) @binding(2) var myVolume : texture_3d<f16>;
 
                 @vertex fn vs(
                     @location(0) position : vec4f,
@@ -161,7 +170,6 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
             });
 
             // Manually define the layout for our bind group
-            // Manually define the layout for our bind group
             const bindGroupLayout = device.createBindGroupLayout({
                 label: 'Main Bind Group Layout',
                 entries: [
@@ -173,17 +181,17 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     {
                         binding: 1,
                         visibility: GPUShaderStage.FRAGMENT,
-                        sampler: { type: 'non-filtering' }
+                        sampler: { type: 'filtering' }
                     },
                     {
                         binding: 2,
                         visibility: GPUShaderStage.FRAGMENT,
                         texture: { 
-                            sampleType: 'unfilterable-float',
+                            sampleType: 'float',
                             viewDimension: '3d' 
                         }
                     }
-                ] as const // <-- ADD THIS LINE
+                ] as const
             });
 
             // Create a pipeline layout using our manual bind group layout
@@ -258,7 +266,17 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     depthOrArrayLayers: volumeInfo.dimensions[2],
                 },
                 dimension: "3d",
-                format: "r32float",
+                // the thing with format is complex, because the format is dependant on
+                // the format of the volumeData is an int16array right now
+                // there's a few things we want for this texture
+                // 1. we want to have linear filtering (for smoothness)
+                // 2. we need it to be in 16 bits
+                // we use r16unorm because each HU value is r16
+                // linear filtering is done on the gpu which only accepts certain types,
+                // the gpu can only handle normalize values for filtering
+                // the values of each r16 needs to be normalized
+                // we use use unsigned for data symmetry
+                format: "r16uint",
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
             });
 
@@ -266,9 +284,11 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 {
                     texture: volumeTexture
                 },
-                floatVolumeData,
+                normalizedData,
                 {
-                    bytesPerRow: volumeInfo.dimensions[0] * 4,
+                    offset: 0,
+                    // change dimensions to 2 bytes per voxel
+                    bytesPerRow: volumeInfo.dimensions[0] * 2,
                     rowsPerImage: volumeInfo.dimensions[1]
                 },
                 {
@@ -281,8 +301,8 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
 
             // texture sampler
             const sampler = device.createSampler({
-                magFilter: "nearest",
-                minFilter: "nearest",
+                magFilter: "linear",
+                minFilter: "linear",
             });
 
             // to read a descriptor you need a descriptor set
