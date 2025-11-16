@@ -46,16 +46,15 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
 
             // 'volumeInfo.volumeData' is the Int16Array of HU values
             // these values are signed (not 0 - 25535) but -32768 - 32767
-            // we need to have unsigned for linear filtering
-            // and we will convert them to unsigned so we can get them from 0 -1 
-            // so we can index our transfer function properly and so the gpu can read it
+            // we need to have 8 bit unsigned data for linear filtering
+            // and we can index our transfer function with smaller values
             const huData = volumeInfo.volumeData; 
 
             // Convert signed Int16 to unsigned Uint16
             const unsignedData = new Uint16Array(huData.length);
             for (let i = 0; i < huData.length; i++) {
                 // Shift from [-32768, 32767] to [0, 65535]
-                unsignedData[i] = huData[i] + 32768; 
+                unsignedData[i] = huData[i] + 2**15; 
             }
             
             // RG8Unorm format requires bytes, not 16-bit values
@@ -134,26 +133,23 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
             const module = device.createShaderModule({
                 label: 'Hard coded red triangle shaders',
                 code: /* wgsl */ `
-                // --- 1. UNIFORMS (Renamed cameraPos01 to cameraPos) ---
                 struct Uniforms {
                     modelViewProjectionMatrix : mat4x4f,
                     inverseModelMatrix : mat4x4f,
-                    cameraPos : vec3f, // This is our world-space "eye_pos"
+                    cameraPos : vec3f,
                 };
 
-                // --- 2. VERTEX OUTPUT (Now passes ray data) ---
                 struct VertexOutput {
                     @builtin(position) Position : vec4f,
                     @location(0) uv : vec2f,
-                    @location(1) rayDir : vec3f, // The ray direction (interpolated)
-                    @location(2) @interpolate(flat) transformed_eye : vec3f, // The ray origin
+                    @location(1) rayDir : vec3f,
+                    @location(2) @interpolate(flat) transformed_eye : vec3f,
                 };
 
                 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
                 @group(0) @binding(1) var samp : sampler;
                 @group(0) @binding(2) var volumeTex : texture_3d<f32>;
 
-                // --- 3. VERTEX SHADER (Calculates the ray) ---
                 @vertex
                 fn vs(
                     @location(0) position : vec4f,
@@ -164,24 +160,23 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     out.Position = uniforms.modelViewProjectionMatrix * position;
                     out.uv = uv;
 
-                    // --- This is the logic from Will Usher's shader ---
-                    // 1. Transform world-space camera to [-1, 1] model-space
+                    // transform world-space camera to [-1, 1] model-space
                     let cameraModelPos = (uniforms.inverseModelMatrix * vec4f(uniforms.cameraPos, 1.0)).xyz;
                     
-                    // 2. Transform [-1, 1] model-space camera to [0, 1] texture-space
+                    // transform [-1, 1] model-space camera to [0, 1] texture-space
                     // This is our "transformed_eye"
                     out.transformed_eye = 0.5 * (cameraModelPos + vec3f(1.0));
 
-                    // 3. Convert vertex position to [0, 1] texture-space
+                    // convert vertex position to [0, 1] texture-space
                     let pos01 = 0.5 * (position.xyz + vec3f(1.0));
 
-                    // 4. Calculate ray direction (from eye to vertex) in [0, 1] space
+                    // calculate ray direction (from eye to vertex) in [0, 1] space
                     out.rayDir = pos01 - out.transformed_eye;
 
                     return out;
                 }
 
-                // --- 4. NEW FUNCTION (From Will Usher's code) ---
+                // --- From Will Usher ---
                 // Intersects a ray with the [0, 1] unit box
                 fn intersect_box(orig: vec3f, dir: vec3f) -> vec2f {
                     let box_min = vec3f(0.0);
@@ -209,7 +204,6 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     // Step 2: Intersect the ray with the volume bounds to find the interval
                     // along the ray overlapped by the volume.
                     let t_hit = intersect_box(transformed_eye, dir);
-                    
                     if (t_hit.x > t_hit.y) {
                         discard;
                     }
@@ -223,10 +217,11 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     if (t_hit.y <= t_start || t_hit.y - t_start < 0.001) {
                         discard;
                     }
-                    
+
                     // Step 3: Compute the step size to march through the volume grid
                     // Using a reasonable step count (adjust based on performance)
-                    let steps = 256u;
+                    // 256 us the best
+                    let steps = 32u;
                     let dt = (t_hit.y - t_start) / f32(steps);
                     
                     // Step 4: Starting from the entry point, march the ray through the volume
@@ -257,7 +252,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                         // intensity 0.0 = -32768 HU, intensity 0.5 = 0 HU, intensity 1.0 = +32767 HU
                         // Typical medical HU ranges: Air ~-1000, Soft tissue ~0-100, Bone ~300-3000
                         // Map intensity 0.48-0.55 (roughly -1000 to +3000 HU) to visible range
-                        let hu_range_min = 0.48;  // ~-1000 HU
+                        let hu_range_min = 0.485;  // ~-1000 HU
                         let hu_range_max = 0.55;  // ~+3000 HU
                         var normalized_intensity = (intensity - hu_range_min) / (hu_range_max - hu_range_min);
                         normalized_intensity = clamp(normalized_intensity, 0.0, 1.0);
@@ -360,14 +355,16 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 fragment: {
                     entryPoint: 'fs',
                     module,
-                    targets:[{ format: presentationFormat }]
+                    targets:[{ 
+                        format: presentationFormat,
+                    }]
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'none', // Render both sides so we can properly discard fragments
+                    cullMode: 'back',
                 },
                 depthStencil: {
-                    depthWriteEnabled: true,
+                    depthWriteEnabled: false,
                     depthCompare: 'less',
                     format: 'depth24plus',
                 }
@@ -466,24 +463,25 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
 
             const getUniformData = (): Float32Array => {
                 
-                // 1. Camera (View)
+                // Camera
                 const viewMatrix = mat4.identity();
-                mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
+                mat4.translate(viewMatrix, vec3.fromValues(0, 0, -2.5), viewMatrix);
                 // World-space camera position (should match view matrix)
                 // View matrix translates world by (0, 0, -4), so camera is at (0, 0, 4)
                 const cameraWorldPos = vec3.fromValues(0, 0, 4);
 
-                // 2. Object (Model)
+                // Object
                 const modelMatrix = mat4.identity();
-                // Apply the animated Y rotation first (left-right spin)
+                
                 const now = Date.now() / 1000;
                 mat4.rotateY(modelMatrix, now * 0.7, modelMatrix);
+
                 // Then apply initial rotation to orient the volume properly (face the camera)
                 // Rotate around X axis to flip upright
                 mat4.rotateX(modelMatrix, -Math.PI / 2, modelMatrix);
 
                 // 3. Inverse Model
-                // This is the new matrix we need for the shader
+                // This is the new matrix we need for the shader to account for rotation
                 const inverseModelMatrix = mat4.invert(modelMatrix);
 
                 // 4. Final MVP
