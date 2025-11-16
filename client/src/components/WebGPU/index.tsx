@@ -46,8 +46,9 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
 
             // 'volumeInfo.volumeData' is the Int16Array of HU values
             // these values are signed (not 0 - 25535) but -32768 - 32767
-            // we need to have 8 bit unsigned data for linear filtering
-            // and we can index our transfer function with smaller values
+            // we need to have unsigned for linear filtering
+            // and we will convert them to unsigned so we can get them from 0 -1 
+            // so we can index our transfer function properly and so the gpu can read it
             const huData = volumeInfo.volumeData; 
 
             // Convert signed Int16 to unsigned Uint16
@@ -136,14 +137,14 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 struct Uniforms {
                     modelViewProjectionMatrix : mat4x4f,
                     inverseModelMatrix : mat4x4f,
-                    cameraPos : vec3f,
+                    cameraPos : vec3f, // This is our world-space "eye_pos"
                 };
 
                 struct VertexOutput {
                     @builtin(position) Position : vec4f,
                     @location(0) uv : vec2f,
-                    @location(1) rayDir : vec3f,
-                    @location(2) @interpolate(flat) transformed_eye : vec3f,
+                    @location(1) rayDir : vec3f, // The ray direction (interpolated)
+                    @location(2) @interpolate(flat) transformed_eye : vec3f, // The ray origin
                 };
 
                 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
@@ -160,23 +161,24 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     out.Position = uniforms.modelViewProjectionMatrix * position;
                     out.uv = uv;
 
-                    // transform world-space camera to [-1, 1] model-space
+                    // --- This is the logic from Will Usher's shader ---
+                    // 1. Transform world-space camera to [-1, 1] model-space
                     let cameraModelPos = (uniforms.inverseModelMatrix * vec4f(uniforms.cameraPos, 1.0)).xyz;
                     
-                    // transform [-1, 1] model-space camera to [0, 1] texture-space
-                    // This is our "transformed_eye"
+                    // 2. Transform [-1, 1] model-space camera to [0, 1] texture-space
+                    // This is our "transformed_eye" position
                     out.transformed_eye = 0.5 * (cameraModelPos + vec3f(1.0));
 
-                    // convert vertex position to [0, 1] texture-space
+                    // 3. Convert vertex position to [0, 1] texture-space
                     let pos01 = 0.5 * (position.xyz + vec3f(1.0));
 
-                    // calculate ray direction (from eye to vertex) in [0, 1] space
+                    // 4. Calculate ray direction (from eye to vertex) in [0, 1] space
                     out.rayDir = pos01 - out.transformed_eye;
 
                     return out;
                 }
 
-                // --- From Will Usher ---
+                // --- 4. Ray intersection Formula (From Will Usher's code) ---
                 // Intersects a ray with the [0, 1] unit box
                 fn intersect_box(orig: vec3f, dir: vec3f) -> vec2f {
                     let box_min = vec3f(0.0);
@@ -191,7 +193,6 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     return vec2f(t0, t1);
                 }
 
-                // --- 5. FRAGMENT SHADER (Uses the new ray) ---
                 @fragment
                 fn fs(
                     @location(0) uv: vec2f,
@@ -204,6 +205,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     // Step 2: Intersect the ray with the volume bounds to find the interval
                     // along the ray overlapped by the volume.
                     let t_hit = intersect_box(transformed_eye, dir);
+                    
                     if (t_hit.x > t_hit.y) {
                         discard;
                     }
@@ -217,21 +219,32 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     if (t_hit.y <= t_start || t_hit.y - t_start < 0.001) {
                         discard;
                     }
-
+                    
                     // Step 3: Compute the step size to march through the volume grid
-                    // Using a reasonable step count (adjust based on performance)
-                    // 256 us the best
-                    let steps = 32u;
+                    // Using a reasonable step count
+                    let steps = 128u;
                     let dt = (t_hit.y - t_start) / f32(steps);
                     
                     // Step 4: Starting from the entry point, march the ray through the volume
                     // and sample it
                     var p = transformed_eye + t_start * dir;
+
+                    // continuous color
                     var color = vec4f(0.0);
                     
                     for (var i = 0u; i < steps; i++) {
                         // Clamp position to [0, 1] for texture sampling
                         let clamped_p = clamp(p, vec3f(0.0), vec3f(1.0));
+
+                        // Compute radius from relative XY
+                        let rel = clamped_p.xy * 2.0 - vec2f(1.0);
+                        let r = dot(rel, rel);
+
+                        // If outside circle treat as air
+                        if (r > 0.75) {
+                            p += dir * dt;
+                            continue;
+                        }
                         
                         // Step 4.1: Sample the volume
                         // RG8Unorm: R channel contains high byte, G channel contains low byte
@@ -255,17 +268,19 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                         // Skip air and very low density materials (fully transparent)
                         // Air is typically around -1000 HU, we'll make everything below -500 HU transparent
                         // This prevents air from contributing to the render (whether it's black or white)
-                        if (hu_value < -500.0) {
+                        // Define our window
+                        let hu_window_min = -500.0;
+                        let hu_window_max = 3000.0;
+
+                        // Skip samples that are OUTSIDE our window (either too low OR too high)
+                        if (hu_value < hu_window_min || hu_value > hu_window_max) {
                             p += dir * dt;
-                            continue; // Skip this sample - it's air/background
+                            continue; // Skip this sample - it's air or garbage
                         }
                         
                         // Map HU range to visible window
-                        // Window: -500 HU (air threshold) to +3000 HU (bone)
-                        let hu_window_min = -500.0;
-                        let hu_window_max = 3000.0;
+                        // We can be sure the value is inside the window, so no clamp is needed
                         var normalized_intensity = (hu_value - hu_window_min) / (hu_window_max - hu_window_min);
-                        normalized_intensity = clamp(normalized_intensity, 0.0, 1.0);
                         
                         // Opacity: make tissue and bone visible
                         // Use a window that emphasizes soft tissue and bone
@@ -273,6 +288,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                         let alpha = smoothstep(0.0, 1.0, normalized_intensity) * 0.4;
                         
                         // Simple grayscale color (replace with transfer function later)
+                        // all of 
                         let rgb = vec3f(normalized_intensity);
                         
                         // Step 4.2: Accumulate the color and opacity using the front-to-back
@@ -281,24 +297,12 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                         let new_alpha = color.a + (1.0 - color.a) * alpha;
                         color = vec4f(new_rgb, new_alpha);
                         
-                        // Optimization: break out of the loop when the color is near opaque
-                        if (color.a >= 0.95) {
-                            break;
-                        }
-                        
                         p += dir * dt;
                         
                         // Early exit if we've left the volume
                         if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z < 0.0 || p.z > 1.0) {
                             break;
                         }
-                    }
-                    
-                    // Return fully transparent if we didn't accumulate enough opacity
-                    // This prevents the cube geometry from showing through
-                    // Use a higher threshold and discard to completely eliminate the box
-                    if (color.a < 0.15) {
-                        discard; // Discard the fragment entirely instead of returning transparent
                     }
                     
                     return color;
@@ -367,16 +371,14 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 fragment: {
                     entryPoint: 'fs',
                     module,
-                    targets:[{ 
-                        format: presentationFormat,
-                    }]
+                    targets:[{ format: presentationFormat }]
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'back',
+                    cullMode: 'none', // Render both sides so we can properly discard fragments
                 },
                 depthStencil: {
-                    depthWriteEnabled: false,
+                    depthWriteEnabled: true,
                     depthCompare: 'less',
                     format: 'depth24plus',
                 }
@@ -475,25 +477,24 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
 
             const getUniformData = (): Float32Array => {
                 
-                // Camera
+                // 1. Camera (View)
                 const viewMatrix = mat4.identity();
-                mat4.translate(viewMatrix, vec3.fromValues(0, 0, -2.5), viewMatrix);
+                mat4.translate(viewMatrix, vec3.fromValues(0, 0, -2), viewMatrix);
                 // World-space camera position (should match view matrix)
                 // View matrix translates world by (0, 0, -4), so camera is at (0, 0, 4)
-                const cameraWorldPos = vec3.fromValues(0, 0, 2.5);
+                const cameraWorldPos = vec3.fromValues(0, 0, 2);
 
-                // Object
+                // 2. Object (Model)
                 const modelMatrix = mat4.identity();
-                
+                // Apply the animated Y rotation first (left-right spin)
                 const now = Date.now() / 1000;
                 mat4.rotateY(modelMatrix, now * 0.7, modelMatrix);
-
                 // Then apply initial rotation to orient the volume properly (face the camera)
                 // Rotate around X axis to flip upright
                 mat4.rotateX(modelMatrix, -Math.PI / 2, modelMatrix);
 
                 // 3. Inverse Model
-                // This is the new matrix we need for the shader to account for rotation
+                // This is the new matrix we need for the shader
                 const inverseModelMatrix = mat4.invert(modelMatrix);
 
                 // 4. Final MVP
@@ -516,7 +517,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     // set it as the texture to render to.
                     // image view in vulkan
                     view: context.getCurrentTexture().createView(), 
-                    clearValue: [0.1098, 0.1216, 0.1490, 1],
+                    clearValue: [0, 0, 0, 1],
                     // 0.1098, 0.1216, 0.1490
                     loadOp: 'clear',
                     storeOp: 'store',
