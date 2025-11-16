@@ -51,13 +51,21 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
             // so we can index our transfer function properly and so the gpu can read it
             const huData = volumeInfo.volumeData; 
 
-            // Create a new Float32Array to hold the converted values
+            // Convert signed Int16 to unsigned Uint16
             const unsignedData = new Uint16Array(huData.length);
-            
-            // Loop through and convert each Int16 value to a Float32 value
             for (let i = 0; i < huData.length; i++) {
-                // giving it a shift of 32768 (reference ossium)
-                unsignedData[i] = huData[i] + 2**15; 
+                // Shift from [-32768, 32767] to [0, 65535]
+                unsignedData[i] = huData[i] + 32768; 
+            }
+            
+            // RG8Unorm format requires bytes, not 16-bit values
+            // We need to split each 16-bit value into high and low bytes
+            // Format: [R0, G0, R1, G1, ...] where R is high byte, G is low byte
+            const rg8Data = new Uint8Array(huData.length * 2);
+            for (let i = 0; i < unsignedData.length; i++) {
+                const value = unsignedData[i];
+                rg8Data[i * 2] = (value >> 8) & 0xFF;      // High byte -> R
+                rg8Data[i * 2 + 1] = value & 0xFF;          // Low byte -> G
             }
             
             const displayWidth = canvas.clientWidth;
@@ -192,53 +200,101 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 @fragment
                 fn fs(
                     @location(0) uv: vec2f,
-                    @location(1) rayDir: vec3f, // Receives ray direction
-                    @location(2) @interpolate(flat) transformed_eye: vec3f // Receives ray origin
+                    @location(1) rayDir: vec3f,
+                    @location(2) @interpolate(flat) transformed_eye: vec3f
                 ) -> @location(0) vec4f {
-
-                    // --- Ray setup (from Will Usher) ---
+                    // Step 1: Normalize the view ray
                     let dir = normalize(rayDir);
+                    
+                    // Step 2: Intersect the ray with the volume bounds to find the interval
+                    // along the ray overlapped by the volume.
                     let t_hit = intersect_box(transformed_eye, dir);
-
-                    // If no hit, discard the pixel
+                    
                     if (t_hit.x > t_hit.y) {
                         discard;
                     }
-
-                    // We don't want to sample behind the eye
-                    let t_min = max(t_hit.x, 0.0);
-                    let t_max = t_hit.y;
-
-                    // Calculate a step size. 128 steps is a good start.
-                    let steps = 128u;
-                    let stepSize = (t_max - t_min) / f32(steps);
-
-                    // Start the ray at the entry point
-                    var pos = transformed_eye + t_min * dir;
                     
-                    var acc = 0.0; // accumulated grayscale
-
-                    // --- Raymarch ---
-                    for (var i = 0u; i < steps; i++) {
-                        // Note: We don't need the "if ray escaped" check anymore
-                        // because our loop only goes from t_min to t_max.
-
-                        // --- FIX: Reconstruct 16-bit value from rg8unorm ---
-                        let sampleVec = textureSampleLevel(volumeTex, samp, pos, 0.0);
-                        let sampleVal = (sampleVec.r * 255.0 + sampleVec.g * 255.0 * 256.0) / 65535.0;
-
-                        // Convert 16-bit value back to HU-like range
-                        let hu16 = sampleVal * 65535.0;
-
-                        // Simple grayscale visualization
-                        let shade = hu16 / 4096.0;  // tune as needed
-                        acc += shade * 0.02; // Tune the 0.02 for brightness
-
-                        pos += dir * stepSize;
+                    // We don't want to sample voxels behind the eye if it's
+                    // inside the volume, so keep the starting point at or in front
+                    // of the eye
+                    let t_start = max(t_hit.x, 0.0);
+                    
+                    // Early discard if the intersection is invalid or too small
+                    if (t_hit.y <= t_start || t_hit.y - t_start < 0.001) {
+                        discard;
                     }
-
-                    let g = clamp(acc, 0.0, 1.0);
-                    return vec4f(g, g, g, 1.0);
+                    
+                    // Step 3: Compute the step size to march through the volume grid
+                    // Using a reasonable step count (adjust based on performance)
+                    let steps = 256u;
+                    let dt = (t_hit.y - t_start) / f32(steps);
+                    
+                    // Step 4: Starting from the entry point, march the ray through the volume
+                    // and sample it
+                    var p = transformed_eye + t_start * dir;
+                    var color = vec4f(0.0);
+                    
+                    for (var i = 0u; i < steps; i++) {
+                        // Clamp position to [0, 1] for texture sampling
+                        let clamped_p = clamp(p, vec3f(0.0), vec3f(1.0));
+                        
+                        // Step 4.1: Sample the volume
+                        // RG8Unorm: R channel contains high byte, G channel contains low byte
+                        // Both R and G are already normalized to 0.0-1.0 range
+                        let sample = textureSampleLevel(volumeTex, samp, clamped_p, 0.0);
+                        let r_val = sample.r; // Already normalized (0.0-1.0)
+                        let g_val = sample.g; // Already normalized (0.0-1.0)
+                        
+                        // Reconstruct 16-bit unsigned value from RG8Unorm
+                        // R and G are normalized, so multiply by 255 to get byte values
+                        // Then combine: (high_byte * 256 + low_byte) / 65535.0
+                        let high_byte = r_val * 255.0;
+                        let low_byte = g_val * 255.0;
+                        let combined_16bit = high_byte * 256.0 + low_byte;
+                        let intensity = combined_16bit / 65535.0; // Normalized 0.0-1.0
+                        
+                        // Map normalized intensity back to HU-like range for visualization
+                        // intensity 0.0 = -32768 HU, intensity 0.5 = 0 HU, intensity 1.0 = +32767 HU
+                        // Typical medical HU ranges: Air ~-1000, Soft tissue ~0-100, Bone ~300-3000
+                        // Map intensity 0.48-0.55 (roughly -1000 to +3000 HU) to visible range
+                        let hu_range_min = 0.48;  // ~-1000 HU
+                        let hu_range_max = 0.55;  // ~+3000 HU
+                        var normalized_intensity = (intensity - hu_range_min) / (hu_range_max - hu_range_min);
+                        normalized_intensity = clamp(normalized_intensity, 0.0, 1.0);
+                        
+                        // Opacity: make tissue and bone visible
+                        // Use a window that emphasizes soft tissue and bone
+                        let alpha = smoothstep(0.0, 1.0, normalized_intensity) * 0.2;
+                        
+                        // Simple grayscale color (replace with transfer function later)
+                        let rgb = vec3f(normalized_intensity);
+                        
+                        // Step 4.2: Accumulate the color and opacity using the front-to-back
+                        // compositing equation
+                        let new_rgb = color.rgb + (1.0 - color.a) * alpha * rgb;
+                        let new_alpha = color.a + (1.0 - color.a) * alpha;
+                        color = vec4f(new_rgb, new_alpha);
+                        
+                        // Optimization: break out of the loop when the color is near opaque
+                        if (color.a >= 0.95) {
+                            break;
+                        }
+                        
+                        p += dir * dt;
+                        
+                        // Early exit if we've left the volume
+                        if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z < 0.0 || p.z > 1.0) {
+                            break;
+                        }
+                    }
+                    
+                    // Return fully transparent if we didn't accumulate enough opacity
+                    // This prevents the cube geometry from showing through
+                    if (color.a < 0.01) {
+                        return vec4f(0.0, 0.0, 0.0, 0.0);
+                    }
+                    
+                    return color;
                 }
                 `,
             });
@@ -308,7 +364,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'back',
+                    cullMode: 'none', // Render both sides so we can properly discard fragments
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
@@ -359,17 +415,18 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 {
                     texture: volumeTexture
                 },
-                unsignedData,
+                rg8Data,
                 {
                     offset: 0,
-                    // change dimensions to 2 bytes per voxel
+                    // RG8Unorm: 2 bytes per voxel (R and G channels)
                     bytesPerRow: volumeInfo.dimensions[0] * 2,
                     rowsPerImage: volumeInfo.dimensions[1]
                 },
                 {
                     width: volumeInfo.dimensions[0],
                     height: volumeInfo.dimensions[1], 
-                    depthOrArrayLayers: volumeInfo.dimensions[2]},
+                    depthOrArrayLayers: volumeInfo.dimensions[2]
+                }
             )
 
             // 1D transfer function texture
@@ -412,13 +469,18 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 // 1. Camera (View)
                 const viewMatrix = mat4.identity();
                 mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
-                // World-space camera position
-                const cameraWorldPos = vec3.fromValues(0, 10, 0);
+                // World-space camera position (should match view matrix)
+                // View matrix translates world by (0, 0, -4), so camera is at (0, 0, 4)
+                const cameraWorldPos = vec3.fromValues(0, 0, 4);
 
                 // 2. Object (Model)
                 const modelMatrix = mat4.identity();
+                // Apply the animated Y rotation first (left-right spin)
                 const now = Date.now() / 1000;
                 mat4.rotateY(modelMatrix, now * 0.7, modelMatrix);
+                // Then apply initial rotation to orient the volume properly (face the camera)
+                // Rotate around X axis to flip upright
+                mat4.rotateX(modelMatrix, -Math.PI / 2, modelMatrix);
 
                 // 3. Inverse Model
                 // This is the new matrix we need for the shader
