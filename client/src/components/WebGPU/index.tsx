@@ -253,18 +253,29 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                         let combined_16bit = high_byte * 256.0 + low_byte;
                         let intensity = combined_16bit / 65535.0; // Normalized 0.0-1.0
                         
-                        // Map normalized intensity back to HU-like range for visualization
+                        // Convert normalized intensity to approximate HU value
                         // intensity 0.0 = -32768 HU, intensity 0.5 = 0 HU, intensity 1.0 = +32767 HU
-                        // Typical medical HU ranges: Air ~-1000, Soft tissue ~0-100, Bone ~300-3000
-                        // Map intensity 0.48-0.55 (roughly -1000 to +3000 HU) to visible range
-                        let hu_range_min = 0.48;  // ~-1000 HU
-                        let hu_range_max = 0.55;  // ~+3000 HU
-                        var normalized_intensity = (intensity - hu_range_min) / (hu_range_max - hu_range_min);
+                        let hu_value = (intensity - 0.5) * 65536.0; // Approximate HU
+                        
+                        // Skip air and very low density materials (fully transparent)
+                        // Air is typically around -1000 HU, we'll make everything below -500 HU transparent
+                        // This prevents air from contributing to the render (whether it's black or white)
+                        if (hu_value < -500.0) {
+                            p += dir * dt;
+                            continue; // Skip this sample - it's air/background
+                        }
+                        
+                        // Map HU range to visible window
+                        // Window: -500 HU (air threshold) to +3000 HU (bone)
+                        let hu_window_min = -500.0;
+                        let hu_window_max = 3000.0;
+                        var normalized_intensity = (hu_value - hu_window_min) / (hu_window_max - hu_window_min);
                         normalized_intensity = clamp(normalized_intensity, 0.0, 1.0);
                         
                         // Opacity: make tissue and bone visible
                         // Use a window that emphasizes soft tissue and bone
-                        let alpha = smoothstep(0.0, 1.0, normalized_intensity) * 0.2;
+                        // Only apply opacity to values within our window
+                        let alpha = smoothstep(0.0, 1.0, normalized_intensity) * 0.4;
                         
                         // Simple grayscale color (replace with transfer function later)
                         let rgb = vec3f(normalized_intensity);
@@ -290,8 +301,9 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     
                     // Return fully transparent if we didn't accumulate enough opacity
                     // This prevents the cube geometry from showing through
-                    if (color.a < 0.01) {
-                        return vec4f(0.0, 0.0, 0.0, 0.0);
+                    // Use a higher threshold and discard to completely eliminate the box
+                    if (color.a < 0.15) {
+                        discard; // Discard the fragment entirely instead of returning transparent
                     }
                     
                     return color;
@@ -468,10 +480,10 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                 
                 // 1. Camera (View)
                 const viewMatrix = mat4.identity();
-                mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
+                mat4.translate(viewMatrix, vec3.fromValues(0, 0, -2.5), viewMatrix);
                 // World-space camera position (should match view matrix)
                 // View matrix translates world by (0, 0, -4), so camera is at (0, 0, 4)
-                const cameraWorldPos = vec3.fromValues(0, 0, 4);
+                const cameraWorldPos = vec3.fromValues(0, 0, 2.5);
 
                 // 2. Object (Model)
                 const modelMatrix = mat4.identity();
