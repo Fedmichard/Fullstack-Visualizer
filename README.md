@@ -2,9 +2,9 @@
 
 This is a full-stack web application for medical visualization, built with a C#/.NET 8 backend and a React/TypeScript frontend.
 
-The application allows a user to upload a series of 2D DICOM medical images. The backend processes this series, sorts the slices, and converts the raw pixel data into 16-bit Hounsfield Units (HU). This 3D volume data is then sent to the frontend, where it is rendered in real-time as a 3D volume using a custom GPU-powered ray-marching renderer built with WebGPU and WGSL.
+The application allows a user to upload a series of 2D DICOM medical images. The backend processes this series, sorts the slices, and converts the raw pixel data into 16-bit Hounsfield Units (HU). This 3D volume data is then sent to the frontend, where it is rendered in real-time as a 3D volume using a custom GPU-powered ray-marching + front to back compisiting renderer built with WebGPU and WGSL.
 
-## 🖼️ Features & Screenshots
+## Features & Screenshots
 
 * **Full 3D Volumetric Rendering:** Real-time GPU ray-marching of 3D volume data.
 * **DICOM Data Pipeline:** Backend pipeline parses raw 2D DICOM series, applies slope/intercept, and converts data to 16-bit Hounsfield Units.
@@ -12,8 +12,6 @@ The application allows a user to upload a series of 2D DICOM medical images. The
 * **Shader-Based:** All rendering logic, including ray-box intersection and alpha compositing, is handled in a custom WGSL shader.
 
 ---
-
-*(Add your screenshots here. You can just drag and drop them into the GitHub editor.)*
 
 <img width="1408" height="1217" alt="Torso" src="https://github.com/user-attachments/assets/7a3919bc-20e1-42f4-8d7d-88d9f0a4b00f" />
 _A demo of the 3D volumetric renderer in action._
@@ -25,14 +23,29 @@ _The full application UI, showing the 2D slice views and 3D render._
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 * **Backend:** C#, ASP.NET 8
 * **Frontend:** React, TypeScript
 * **Rendering:** WebGPU, WGSL
 * **Data Parsing:** FellowOakDicom
 
-## 🚀 How to Run
+## Resources that helped me
+
+* GPU Gems Chapter 39
+* Will Usher Volume Rendering with WebGL
+* WebGPU Fundamentals
+* WebGPU Samples
+* https://radiopaedia.org/articles/hounsfield-unit?lang=us
+* https://www.sciencedirect.com/topics/medicine-and-dentistry/hounsfield-scale
+* https://dicom.nema.org/medical/dicom/current/output/chtml/part06/chapter_6.html
+* https://github.com/fraserlove/ossium
+* https://stackoverflow.com/questions/6111559/volume-rendering-confusion-with-front-to-back-compositing
+* https://gpuweb.github.io/gpuweb/#ref-for-dom-gputextureformat-r16uint%E2%91%A0
+* https://community.khronos.org/t/linear-filtering-for-texture3d-not-working-while-nearest-filtering-works/108637
+
+
+## How to Run
 
 ### Prerequisites
 
