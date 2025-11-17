@@ -1,13 +1,13 @@
 /* --- GLOBAL VARIABLES & LAYOUT --- */
 :root {
-  --bg-dark: #1c1f26;       /* backdrop for renderer */
-  --panel-dark: #202635;    /* toolbar / rightbar panels */
-  --panel-light: #2a3142;   /* hover / elevated panels */
-  --accent: #22d3ee;        /* cyan (primary) */
-  --accent-2: #7c3aed;      /* purple (secondary) */
-  --text-light: #e6e8ef;
-  --text-muted: #9aa3b2;
-  --line: #2f3a55;
+  --bg-dark: #000000;      /* Almost pure black backdrop */
+  --panel-dark: #1a1a1a;   /* Very dark gray panels */
+  --panel-light: #2a2a2a;  /* Lighter gray for hover/elevated */
+  --accent: #facc15;      /* Primary accent (bright yellow) */
+  --accent-2: #d97706;    /* Secondary accent (darker amber) */
+  --text-light: #e5e5e5;  /* Off-white */
+  --text-muted: #888888;  /* Medium gray */
+  --line: #333333;        /* Border color */
 }
 
 body {
