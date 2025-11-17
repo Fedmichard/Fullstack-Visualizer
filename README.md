@@ -30,7 +30,7 @@ _The full application UI, showing the 2D slice views and 3D render._
 * **Rendering:** WebGPU, WGSL
 * **Data Parsing:** FellowOakDicom
 
-## Resources that helped me
+## Resources I Used
 
 * GPU Gems Chapter 39
 * Will Usher Volume Rendering with WebGL
@@ -44,6 +44,14 @@ _The full application UI, showing the 2D slice views and 3D render._
 * https://gpuweb.github.io/gpuweb/#ref-for-dom-gputextureformat-r16uint%E2%91%A0
 * https://community.khronos.org/t/linear-filtering-for-texture3d-not-working-while-nearest-filtering-works/108637
 
+## Next Steps
+
+* Camera Interaction
+* Metadata Viewing
+* Render Setting Functionality
+* Transfer Function
+* Blinn-phong Lighting
+* Export Functionality
 
 ## How to Run
 
@@ -60,6 +68,13 @@ _The full application UI, showing the 2D slice views and 3D render._
 ```bash
 # Navigate to the server directory
 cd path/to/your/server
+
+# Adjust global.json to your .Net version
+{
+  "sdk": {
+    "version": "8.0.414"
+  }
+}
 
 # Restore .NET dependencies
 dotnet restore
