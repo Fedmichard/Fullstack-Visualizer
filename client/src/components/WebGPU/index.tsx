@@ -222,7 +222,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     
                     // Step 3: Compute the step size to march through the volume grid
                     // Using a reasonable step count
-                    let steps = 1024u;
+                    let steps = 2048u;
                     let dt = (t_hit.y - t_start) / f32(steps);
                     
                     // Step 4: Starting from the entry point, march the ray through the volume
