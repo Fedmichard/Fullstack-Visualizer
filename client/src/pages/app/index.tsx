@@ -14,7 +14,7 @@ import { WebGPURenderer } from '../../components/WebGPU';
 export interface VolumeInfo {
     dimensions: [number, number, number];
     voxelSpacing: [number, number, number];
-    volumeData: Int16Array; // Convert byte to 16
+    volumeData: Int16Array; // Convert byte back to 16 bits 
 }
 
 type TabID = 'mpr' | 'metadata' | 'render';

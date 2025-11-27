@@ -19,7 +19,6 @@ interface WebGPURendererProps {
 
 const fail = (msg: string) => {
     console.error(msg);
-    // You could also set an error state here
 };
 
 export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
@@ -52,6 +51,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
             const huData = volumeInfo.volumeData; 
 
             // Convert signed Int16 to unsigned Uint16
+            // create new array
             const unsignedData = new Uint16Array(huData.length);
             for (let i = 0; i < huData.length; i++) {
                 // Shift from [-32768, 32767] to [0, 65535]
@@ -222,7 +222,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo}) => {
                     
                     // Step 3: Compute the step size to march through the volume grid
                     // Using a reasonable step count
-                    let steps = 2048u;
+                    let steps = 256u;
                     let dt = (t_hit.y - t_start) / f32(steps);
                     
                     // Step 4: Starting from the entry point, march the ray through the volume
