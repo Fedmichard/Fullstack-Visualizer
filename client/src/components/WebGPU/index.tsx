@@ -308,7 +308,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                     // and sample it
                     var p = transformed_eye + t_start * dir;
 
-                    // continuous color
+                    // continuous color and opacity
                     var color = vec4f(0.0);
                     
                     for (var i = 0u; i < steps; i++) {
@@ -320,13 +320,14 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                         let r = dot(rel, rel);
 
                         // If outside circle treat as air
+                        // AI generated solution to fix white line artifacts
                         // 0.75
                         if (r > 0.75) {
                             p += dir * dt;
                             continue;
                         }
                         
-                        // Step 4.1: Sample the volume
+                        // Sample the volume
                         // RG8Unorm: R channel contains high byte, G channel contains low byte
                         // Both R and G are already normalized to 0.0-1.0 range
                         let sample = textureSampleLevel(volumeTex, samp, clamped_p, 0.0);
