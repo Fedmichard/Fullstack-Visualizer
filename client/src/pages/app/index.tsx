@@ -17,6 +17,24 @@ export interface VolumeInfo {
     volumeData: Int16Array; // Convert byte back to 16 bits 
 }
 
+export interface RenderSettings {
+    windowMin: number;
+    windowMax: number;
+    brightness: number;
+    contrast: number;
+    opacity: number;
+    softness: number;
+}
+
+const DEFAULT_SETTINGS: RenderSettings = {
+    windowMin: -500,
+    windowMax: 3000,
+    brightness: 0.0,
+    contrast: 1.0,
+    opacity: 1.0,
+    softness: 0.2
+};
+
 type TabID = 'mpr' | 'metadata' | 'render';
 
 function App() {
@@ -30,6 +48,9 @@ function App() {
     // State for your volume data
     const [volumeInfo, setVolumeInfo] = useState<VolumeInfo | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // state for settings tab
+    const [renderSettings, setRenderSettings] = useState<RenderSettings>(DEFAULT_SETTINGS);
 
     const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, panel: 'settings') => { // Only 'settings'
         e.preventDefault();
@@ -56,6 +77,15 @@ function App() {
         }
     }, [resizingPanel, settingsSidebarWidth]); // Simplified dependencies
 
+    const updateSetting = (key: keyof RenderSettings, value: number) => {
+        setRenderSettings(prev => ({ ...prev, [key]: value }));
+    };
+
+    // The Reset Handler
+    const handleReset = () => {
+        setRenderSettings(DEFAULT_SETTINGS);
+    };
+
     useEffect(() => {
         if (resizingPanel) {
             window.addEventListener('mousemove', handleMouseMove);
@@ -66,7 +96,6 @@ function App() {
             window.removeEventListener('mouseup', handleMouseUp);
         };
     }, [resizingPanel, handleMouseMove, handleMouseUp]);
-
 
     // Add a ref for our hidden file input
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,7 +182,10 @@ function App() {
                         </div>
                     )}
                     {volumeInfo && (
-                        <WebGPURenderer volumeInfo={volumeInfo} />
+                        <WebGPURenderer
+                        volumeInfo={volumeInfo}
+                        settings={renderSettings}
+                        />
                     )}
                 </section>
                 
@@ -172,16 +204,16 @@ function App() {
                                 2D Views
                             </button>
                             <button
-                                className={`tab-button ${activeTab === 'metadata' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('metadata')}
-                            >
-                                Metadata
-                            </button>
-                            <button
                                 className={`tab-button ${activeTab === 'render' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('render')}
                             >
                                 Settings
+                            </button>
+                            <button
+                                className={`tab-button ${activeTab === 'metadata' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('metadata')}
+                            >
+                                Metadata
                             </button>
                         </div>
 
@@ -228,7 +260,97 @@ function App() {
                                 </div>
                             )}
 
-                            {/* --- Panel 2: Metadata --- */}
+                            {/* --- Panel 2: Render Settings --- */}
+                            {activeTab === 'render' && (
+                                <div className="render-settings-panel">
+
+                                <div className="panel-header-row">
+                                    <h3>Render Settings</h3>
+                                    <button className="reset-btn" onClick={handleReset}>
+                                        Reset
+                                    </button>
+                                </div>
+                                {/* Window Min */}
+                                <div className="setting-group">
+                                    <div className="setting-header">
+                                        <label>Window Min</label>
+                                        <span className="setting-value">{renderSettings.windowMin} HU</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="-2000" max="4000" step="10"
+                                        value={renderSettings.windowMin}
+                                        onChange={(e) => updateSetting('windowMin', Number(e.target.value))}
+                                    />
+                                </div>
+
+                                {/* Window Max */}
+                                <div className="setting-group">
+                                    <div className="setting-header">
+                                        <label>Window Max</label>
+                                        <span className="setting-value">{renderSettings.windowMax} HU</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="-2000" max="4000" step="10"
+                                        value={renderSettings.windowMax}
+                                        onChange={(e) => updateSetting('windowMax', Number(e.target.value))}
+                                    />
+                                </div>
+
+                                {/* Brightness Offset */}
+                                <div className="setting-group">
+                                    <div className="setting-header">
+                                        <label>Brightness Offset</label>
+                                        <span className="setting-value">{renderSettings.brightness} HU</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="-5" max="5" step="0.01"
+                                        value={renderSettings.brightness}
+                                        onChange={(e) => updateSetting('brightness', Number(e.target.value))}
+                                    />
+                                </div>
+
+                                {/* Contrast Factor */}
+                                <div className="setting-group">
+                                    <div className="setting-header">
+                                        <label>Contrast Factor</label>
+                                        <span className="setting-value">{renderSettings.contrast.toFixed(2)}</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="0.1" max="3.0" step="0.1"
+                                        value={renderSettings.contrast}
+                                        onChange={(e) => updateSetting('contrast', Number(e.target.value))}
+                                    />
+                                </div>
+
+                                {/* Opacity Strength */}
+                                <div className="setting-group">
+                                    <div className="setting-header">
+                                        <label>Opacity Strength</label>
+                                        <span className="setting-value">{renderSettings.opacity.toFixed(2)}</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="0.0" max="2.0" step="0.1"
+                                        value={renderSettings.opacity}
+                                        onChange={(e) => updateSetting('opacity', Number(e.target.value))}
+                                    />
+                                </div>
+
+                                {/* Softness */}
+                                <div className="setting-group">
+                                    <div className="setting-header">
+                                        <label>Softness</label>
+                                        <span className="setting-value">{renderSettings.softness.toFixed(2)}</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="0.0" max="1.0" step="0.01"
+                                        value={renderSettings.softness}
+                                        onChange={(e) => updateSetting('softness', Number(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+                            )}
+
+                            {/* --- Panel 3: Metadata --- */}
                             {activeTab === 'metadata' && (
                                 <div className="metadata-panel">
                                     <h3>Metadata</h3>
@@ -237,14 +359,6 @@ function App() {
                                 </div>
                             )}
 
-                            {/* --- Panel 3: Render Settings --- */}
-                            {activeTab === 'render' && (
-                                <div className="render-settings-panel">
-                                    <h3>Render Settings</h3>
-                                    <p>Brightness: 100%</p>
-                                    <p>Contrast: 100%</p>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </section>

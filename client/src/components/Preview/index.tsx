@@ -9,8 +9,8 @@ interface AxialViewProps {
 }
 
 // Define a default "window" to map HU values to grayscale
-const WINDOW_MIN = -1000; // Air
-const WINDOW_MAX = 2000;  // Bone
+const WINDOW_MIN = -2000; // Air
+const WINDOW_MAX = 4000;  // Bone
 const WINDOW_RANGE = WINDOW_MAX - WINDOW_MIN;
 
 export const AxialView: React.FC<AxialViewProps> = ({
