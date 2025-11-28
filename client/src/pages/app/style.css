@@ -313,9 +313,94 @@ body {
     scrollbar-color: var(--panel-light) var(--panel-dark);
 }
 
-/* --- REMOVED: flex-shrink: 0; from .metadata-panel --- */
+.setting-group {
+    margin-bottom: 1.25rem;
+}
 
-/* --- REMOVED: flex-grow: 1; and min-height: 0; from .render-settings-panel --- */
+.setting-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.setting-header label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.setting-value {
+    color: var(--accent);
+    font-family: monospace;
+}
+
+/* --- CUSTOM RANGE SLIDER --- */
+/* Reset default appearance */
+input[type=range] {
+    -webkit-appearance: none; 
+    width: 100%; 
+    background: transparent; 
+}
+
+input[type=range]:focus {
+    outline: none; 
+}
+
+/* Chrome/Safari/Edge Track */
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: var(--panel-light);
+    border-radius: 3px;
+    border: 1px solid var(--line);
+}
+
+/* Chrome/Safari/Edge Thumb (The Handle) */
+input[type=range]::-webkit-slider-thumb {
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: var(--text-light);
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: -6px; /* center thumb on track */
+    box-shadow: 0 0 2px rgba(0,0,0,0.5);
+    transition: background 0.2s, transform 0.2s;
+}
+
+/* Hover State */
+input[type=range]:hover::-webkit-slider-thumb {
+    background: var(--accent);
+    transform: scale(1.1);
+}
+
+/* Firefox Track */
+input[type=range]::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: var(--panel-light);
+    border-radius: 3px;
+    border: 1px solid var(--line);
+}
+
+/* Firefox Thumb */
+input[type=range]::-moz-range-thumb {
+    height: 16px;
+    width: 16px;
+    border: none;
+    border-radius: 50%;
+    background: var(--text-light);
+    cursor: pointer;
+    box-shadow: 0 0 2px rgba(0,0,0,0.5);
+    transition: background 0.2s, transform 0.2s;
+}
+
+input[type=range]:hover::-moz-range-thumb {
+    background: var(--accent);
+    transform: scale(1.1);
+}
 
 .metadata-panel h3,
 .render-settings-panel h3 {
@@ -323,4 +408,43 @@ body {
     color: var(--text-muted);
     font-size: 1rem;
     font-weight: 500;
+}
+
+/* --- RESET BUTTON & HEADER --- */
+
+/* Use flexbox to put title on left, button on right */
+.panel-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    margin-top: 0; /* Override the default h3 margin */
+}
+
+/* Remove default margin from the h3 so it fits nicely */
+.panel-header-row h3 {
+    margin: 0;
+}
+
+.reset-btn {
+    background-color: transparent; /* See-through background */
+    border: 1px solid var(--accent); /* Yellow Border */
+    color: var(--text-light);      /* White text (Matches app) */
+    
+    border-radius: 4px;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.reset-btn:hover {
+    background-color: var(--accent); /* Fill with yellow on hover */
+    color: var(--panel-dark);      /* Text turns dark on hover for contrast */
+}
+
+.reset-btn:active {
+    transform: scale(0.95);
 }

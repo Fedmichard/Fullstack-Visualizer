@@ -13,13 +13,19 @@ The application allows a user to upload a series of 2D DICOM medical images. The
 
 ---
 
-<img width="1408" height="1217" alt="Torso" src="https://github.com/user-attachments/assets/7a3919bc-20e1-42f4-8d7d-88d9f0a4b00f" />
-_A demo of the 3D volumetric renderer in action._
+A demo of the 3D volumetric renderer in action
+<img width="2557" height="1273" alt="image" src="https://github.com/user-attachments/assets/4c07c4d1-8000-4fa9-9fef-721760feb468" />
 
 <br>
 
-<img width="2559" height="1209" alt="image" src="https://github.com/user-attachments/assets/4ead2b56-2818-46b8-9c2f-20a504e08216" />
-_The full application UI, showing the 2D slice views and 3D render._
+Patient chest at default values
+<img width="1801" height="1211" alt="image" src="https://github.com/user-attachments/assets/38e7a49c-204c-4962-b34b-2f96886f4b78" />
+
+<br>
+
+Skull scan with manipulated contrast, opacity, and softness
+<img width="2558" height="1276" alt="image" src="https://github.com/user-attachments/assets/d6c9f794-5eb6-4014-8029-431b7dbe566a" />
+
 
 ---
 

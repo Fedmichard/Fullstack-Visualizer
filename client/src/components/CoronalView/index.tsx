@@ -10,8 +10,8 @@ interface CoronalViewProps {
 }
 
 // Define a default "window" to map HU values to grayscale
-const WINDOW_MIN = -1000; // e.g., Air
-const WINDOW_MAX = 2000;  // e.g., Bone
+const WINDOW_MIN = -2000; // e.g., Air
+const WINDOW_MAX = 4000;  // e.g., Bone
 const WINDOW_RANGE = WINDOW_MAX - WINDOW_MIN;
 
 export const CoronalView: React.FC<CoronalViewProps> = ({ 

@@ -9,8 +9,8 @@ interface SagittalViewProps {
     sliceIndex: number; // This will be the slice along the X-axis
 }
 
-const WINDOW_MIN = -1000;
-const WINDOW_MAX = 2000;
+const WINDOW_MIN = -2000;
+const WINDOW_MAX = 4000;
 const WINDOW_RANGE = WINDOW_MAX - WINDOW_MIN;
 
 export const SagittalView: React.FC<SagittalViewProps> = ({ 
