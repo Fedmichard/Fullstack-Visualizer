@@ -82,7 +82,6 @@ export const SagittalView: React.FC<SagittalViewProps> = ({
                 height={sagittalHeight}
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
-            <p>Slice {sliceIndex}</p>
         </div>
     );
 };

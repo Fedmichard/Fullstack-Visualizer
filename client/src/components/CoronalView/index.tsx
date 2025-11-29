@@ -93,7 +93,6 @@ export const CoronalView: React.FC<CoronalViewProps> = ({
                 height={coronalHeight}  // Set internal resolution
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }} // CSS scaling
             />
-            <p>Slice {sliceIndex}</p>
         </div>
     );
 };

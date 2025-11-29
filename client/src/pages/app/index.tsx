@@ -20,22 +20,28 @@ export interface VolumeInfo {
 export interface RenderSettings {
     windowMin: number;
     windowMax: number;
-    brightness: number;
     contrast: number;
     opacity: number;
     softness: number;
+    stepSize: number;
+    clipMinX: number; clipMaxX: number;
+    clipMinY: number; clipMaxY: number;
+    clipMinZ: number; clipMaxZ: number;
 }
 
 const DEFAULT_SETTINGS: RenderSettings = {
     windowMin: -500,
     windowMax: 3000,
-    brightness: 0.0,
     contrast: 1.0,
     opacity: 1.0,
-    softness: 0.2
+    softness: 0.2,
+    stepSize: 512,
+    clipMinX: 0.0, clipMaxX: 1.0,
+    clipMinY: 0.0, clipMaxY: 1.0,
+    clipMinZ: 0.0, clipMaxZ: 1.0,
 };
 
-type TabID = 'mpr' | 'metadata' | 'render';
+type TabID = 'mpr' | 'render';
 
 function App() {
     const [settingsSidebarWidth, setSettingsSidebarWidth] = useState(300);
@@ -147,7 +153,6 @@ function App() {
                 <div className="top-bar-left">
                     <span className="app-title">DICOMIZER</span>
                     <button className="top-bar-btn" onClick={handleUploadClick}>Upload DICOM</button>
-                    <button className="top-bar-btn">Export Render</button>
                 </div>
                 <input
                     type="file"
@@ -177,8 +182,10 @@ function App() {
                     )}
                     {isLoading && (
                         <div className="placeholder-content">
-                            <h1>Loading & Processing...</h1>
-                            <p>This may take a moment.</p>
+                            <div className="loading-bar-container">
+                                <div className="loading-bar-fill"></div>
+                            </div>
+                            <div className="loading-text">LOADING VOLUME...</div>
                         </div>
                     )}
                     {volumeInfo && (
@@ -209,12 +216,6 @@ function App() {
                             >
                                 Settings
                             </button>
-                            <button
-                                className={`tab-button ${activeTab === 'metadata' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('metadata')}
-                            >
-                                Metadata
-                            </button>
                         </div>
 
                         {/* --- Tab Content Area --- */}
@@ -223,7 +224,7 @@ function App() {
                             {/* --- Panel 1: MPR --- */}
                             {activeTab === 'mpr' && (
                                 <div className="mpr-panel">
-                                    <h3>2D Views</h3>
+                                    <div className="panel-section-title">2D Views</div>
                                     {volumeInfo && (
                                         <div className="mpr-grid">
                                             <div className="mpr-view">
@@ -265,7 +266,7 @@ function App() {
                                 <div className="render-settings-panel">
 
                                 <div className="panel-header-row">
-                                    <h3>Render Settings</h3>
+                                    <div className="panel-section-title">Render Settings</div>
                                     <button className="reset-btn" onClick={handleReset}>
                                         Reset
                                     </button>
@@ -296,19 +297,6 @@ function App() {
                                     />
                                 </div>
 
-                                {/* Brightness Offset */}
-                                <div className="setting-group">
-                                    <div className="setting-header">
-                                        <label>Brightness Offset</label>
-                                        <span className="setting-value">{renderSettings.brightness} HU</span>
-                                    </div>
-                                    <input 
-                                        type="range" min="-5" max="5" step="0.01"
-                                        value={renderSettings.brightness}
-                                        onChange={(e) => updateSetting('brightness', Number(e.target.value))}
-                                    />
-                                </div>
-
                                 {/* Contrast Factor */}
                                 <div className="setting-group">
                                     <div className="setting-header">
@@ -329,7 +317,7 @@ function App() {
                                         <span className="setting-value">{renderSettings.opacity.toFixed(2)}</span>
                                     </div>
                                     <input 
-                                        type="range" min="0.0" max="2.0" step="0.1"
+                                        type="range" min="0.0" max="2.0" step="0.01"
                                         value={renderSettings.opacity}
                                         onChange={(e) => updateSetting('opacity', Number(e.target.value))}
                                     />
@@ -347,18 +335,118 @@ function App() {
                                         onChange={(e) => updateSetting('softness', Number(e.target.value))}
                                     />
                                 </div>
+
+                                {/* Step Size */}
+                                <div className="setting-group">
+                                    <div className="setting-header">
+                                        <label>Step Size</label>
+                                        <span className="setting-value">{renderSettings.stepSize.toFixed(2)}</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="0" max="4096" step="64"
+                                        value={renderSettings.stepSize}
+                                        onChange={(e) => updateSetting('stepSize', Number(e.target.value))}
+                                    />
+                                </div>
+
+                                <hr className="panel-divider" />
+                                <div className="panel-section-title">Ray-Box Clip Settings</div>
+
+                                {/* Ray Box Intersection Clipping */}
+                                {/* X-AXIS GROUP */}
+                                <div className="axis-group">
+                                    <span className="axis-group-label">X AXIS CLIP</span>
+                                    
+                                    {/* ClipMinX */}
+                                    <div className="setting-group" style={{ marginBottom: '0.5rem' }}>
+                                        <div className="setting-header">
+                                            <label>Min</label>
+                                            <span className="setting-value">{renderSettings.clipMinX.toFixed(2)}</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0.0" max="1.0" step="0.01"
+                                            value={renderSettings.clipMinX}
+                                            onChange={(e) => updateSetting('clipMinX', Number(e.target.value))}
+                                        />
+                                    </div>
+
+                                    {/* ClipMaxX */}
+                                    <div className="setting-group" style={{ marginBottom: 0 }}>
+                                        <div className="setting-header">
+                                            <label>Max</label>
+                                            <span className="setting-value">{renderSettings.clipMaxX.toFixed(2)}</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0.0" max="1.0" step="0.01"
+                                            value={renderSettings.clipMaxX}
+                                            onChange={(e) => updateSetting('clipMaxX', Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Y-AXIS GROUP */}
+                                <div className="axis-group">
+                                    <span className="axis-group-label">Y AXIS CLIP</span>
+                                    
+                                    {/* ClipMinY */}
+                                    <div className="setting-group" style={{ marginBottom: '0.5rem' }}>
+                                        <div className="setting-header">
+                                            <label>Min</label>
+                                            <span className="setting-value">{renderSettings.clipMinY.toFixed(2)}</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0.0" max="1.0" step="0.01"
+                                            value={renderSettings.clipMinY}
+                                            onChange={(e) => updateSetting('clipMinY', Number(e.target.value))}
+                                        />
+                                    </div>
+
+                                    {/* ClipMaxY */}
+                                    <div className="setting-group" style={{ marginBottom: 0 }}>
+                                        <div className="setting-header">
+                                            <label>Max</label>
+                                            <span className="setting-value">{renderSettings.clipMaxY.toFixed(2)}</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0.0" max="1.0" step="0.01"
+                                            value={renderSettings.clipMaxY}
+                                            onChange={(e) => updateSetting('clipMaxY', Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Z-AXIS GROUP */}
+                                <div className="axis-group">
+                                    <span className="axis-group-label">Z AXIS CLIP</span>
+                                    
+                                    {/* ClipMinZ */}
+                                    <div className="setting-group" style={{ marginBottom: '0.5rem' }}>
+                                        <div className="setting-header">
+                                            <label>Min</label>
+                                            <span className="setting-value">{renderSettings.clipMinZ.toFixed(2)}</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0.0" max="1.0" step="0.01"
+                                            value={renderSettings.clipMinZ}
+                                            onChange={(e) => updateSetting('clipMinZ', Number(e.target.value))}
+                                        />
+                                    </div>
+
+                                    {/* ClipMaxZ */}
+                                    <div className="setting-group" style={{ marginBottom: 0 }}>
+                                        <div className="setting-header">
+                                            <label>Max</label>
+                                            <span className="setting-value">{renderSettings.clipMaxZ.toFixed(2)}</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0.0" max="1.0" step="0.01"
+                                            value={renderSettings.clipMaxZ}
+                                            onChange={(e) => updateSetting('clipMaxZ', Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                             )}
-
-                            {/* --- Panel 3: Metadata --- */}
-                            {activeTab === 'metadata' && (
-                                <div className="metadata-panel">
-                                    <h3>Metadata</h3>
-                                    <p>Patient ID: 12345</p>
-                                    <p>Study Date: 2025-09-30</p>
-                                </div>
-                            )}
-
                         </div>
                     </div>
                 </section>

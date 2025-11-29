@@ -35,11 +35,15 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
     // Camera controls
     // Don't need roll
     // stole this
-    const yawRef = useRef(0); // over vertical axis
-    const pitchRef = useRef(0); // over horizontal axis
-    const distanceRef = useRef(750);
-    const isDraggingRef = useRef(false);
-    const lastMousePosRef = useRef({ x: 0, y: 0});
+    let yawRef = 0; // over vertical axis
+    let pitchRef = 0; // over horizontal axis
+    let distanceRef = 750;
+    let panDistanceXRef = 0;
+    let panDistanceYRef = 0;
+    let isDraggingRef = false;
+    let isPanningRef = false;
+    let lastMousePanningRef = { x: 0, y: 0};
+    let lastMousePosRef = { x: 0, y: 0};
 
     const settingsRef = useRef(settings);
 
@@ -49,34 +53,58 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
 
     // run webgpu setup once component is mounted
     useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
         // functions to handle mouse events
         const handleMouseDown = (e: MouseEvent) => {
             // set the current value of isDragging to true
-            isDraggingRef.current = true;
-            lastMousePosRef.current = { x: e.clientX, y: e.clientY};
+            switch (e.button) {
+                case 0:
+                    isDraggingRef = true;
+                    lastMousePosRef = { x: e.clientX, y: e.clientY};
+                    break;
+                case 2:
+                    isPanningRef = true;
+                    lastMousePanningRef = { x: e.clientX, y: e.clientY};
+                    break;
+            }
         };
 
-        const handleMouseUp = () => {
-            isDraggingRef.current = false;
+        const handleMouseUp = (e: MouseEvent) => {
+            switch (e.button) {
+                case 0:
+                    isDraggingRef = false;
+                    break;
+                case 2:
+                    isPanningRef = false;
+                    break;
+            }
         };
 
         const handleMouseMove = (e: MouseEvent) => {
-            // if dragging is false
-            if (!isDraggingRef.current) return;
+            if (isDraggingRef) {
+                const dx = e.clientX - lastMousePosRef.x;
+                const dy = e.clientY - lastMousePosRef.y;
 
-            const dx = e.clientX - lastMousePosRef.current.x;
-            const dy = e.clientY - lastMousePosRef.current.y;
+                yawRef += dx * 0.005;   // sensitivity
+                pitchRef += dy * 0.005;
 
-            yawRef.current += dx * 0.005;   // sensitivity
-            pitchRef.current += dy * 0.005;
+                // Clamp pitch to avoid flipping
+                const limit = Math.PI / 2 - 0.1;
+                pitchRef = Math.max(-limit, Math.min(limit, pitchRef));
 
-            // Clamp pitch to avoid flipping
-            const limit = Math.PI / 2 - 0.1;
-            pitchRef.current = Math.max(-limit, Math.min(limit, pitchRef.current));
+                lastMousePosRef = { x: e.clientX, y: e.clientY };
+            } else if (isPanningRef) {
+                const dx = e.clientX - lastMousePanningRef.x;
+                const dy = e.clientY - lastMousePanningRef.y;
 
-            lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+                panDistanceXRef += dx * 0.1;
+                panDistanceYRef += dy * 0.1;
+
+                lastMousePanningRef = { x: e.clientX, y: e.clientY};
+            }
         };
-
         const handleWheel = (e: WheelEvent) => {
             // Prevent the actual browser window from scrolling
             e.preventDefault();
@@ -84,18 +112,24 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
             const zoomSpeed = 0.1;
 
             // The WheelEvent.deltaY read-only property is a double representing the vertical scroll amount
-            distanceRef.current += e.deltaY * zoomSpeed; // zoom sensitivity
+            distanceRef += e.deltaY * zoomSpeed; // zoom sensitivity
         };
+
 
         // calls methods whenever event takes place
         // whenever mousedown event call handleMouseDown
-        window.addEventListener("mousedown", handleMouseDown);
+        // window.addEventListener("mousedown", handleMouseDown);
+        canvas.addEventListener("mousedown", handleMouseDown);
         // whenever mouseup event call handleMouseUp
         window.addEventListener("mouseup", handleMouseUp);
         // whenever mousemove event call handleMouseMove
         window.addEventListener("mousemove", handleMouseMove);
         // whenever wheel event call handleWheel
-        window.addEventListener("wheel", handleWheel);
+        canvas.addEventListener("wheel", handleWheel);
+        // prevent default button actions
+        canvas.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+        });
 
         // main entry
         const initWebgpu = async () => {
@@ -202,16 +236,26 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                 code: /* wgsl */ `
                 struct Uniforms {
                     modelViewProjectionMatrix : mat4x4f,
+
                     inverseModelMatrix : mat4x4f,
+
                     cameraPos : vec3f, // This is our world-space "eye_pos",
                     cameraPadding : f32,
+
                     windowMin : f32,
                     windowMax : f32,
-                    brightness : f32,
+                    stepSize : f32,
                     contrast : f32,
+
                     opacity : f32,
                     softness : f32,
-                    padding1 : vec2f,
+                    clipMinX : f32,
+                    clipMaxX : f32,
+
+                    clipMinY : f32,
+                    clipMaxY : f32,
+                    clipMinZ : f32,
+                    clipMaxZ : f32,
                 };
 
                 struct VertexOutput {
@@ -266,9 +310,13 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
 
                 // --- Ray intersection Formula (From Will Usher's code) ---
                 // Intersects a ray with the [0, 1] unit box
+                // box max is (0, 0, 0) and box max is (1, 1, 1)
+                // you can scale the individual min and max values separately to create that slice view
+                // min defines entry point, max defines exit
+                // these are mapped to the box dimensions which were adjusted to the 0->1 range
                 fn intersect_box(orig: vec3f, dir: vec3f) -> vec2f {
-                    let box_min = vec3f(0.0);
-                    let box_max = vec3f(1.0);
+                    let box_min = vec3f(uniforms.clipMinX, uniforms.clipMinY, uniforms.clipMinZ);
+                    let box_max = vec3f(uniforms.clipMaxX, uniforms.clipMaxY, uniforms.clipMaxZ);
                     let inv_dir = 1.0 / dir;
                     let tmin_tmp = (box_min - orig) * inv_dir;
                     let tmax_tmp = (box_max - orig) * inv_dir;
@@ -301,7 +349,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                     
                     // Step 3: Compute the step size to march through the volume grid
                     // Using a reasonable step count
-                    let steps = 512u;
+                    let steps = u32(uniforms.stepSize);
                     let dt = (t_hit.y - t_start) / f32(steps);
                     
                     // Step 4: Starting from the entry point, march the ray through the volume
@@ -356,7 +404,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                         // We can be sure the value is inside the window, so no clamp is needed
                         var normalized_intensity = (hu_value - uniforms.windowMin) / (uniforms.windowMax - uniforms.windowMin);
 
-                        normalized_intensity = (normalized_intensity - 0.5) * uniforms.contrast + 0.5 + uniforms.brightness;
+                        normalized_intensity = normalized_intensity* uniforms.contrast;
 
                         normalized_intensity = clamp(normalized_intensity, 0.0, 1.0);
                         
@@ -461,8 +509,8 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
             });
 
             // creating a uniform buffer so we can attach our view/projection matrix
-            // mat4 (each line is one vec4), mat4 (each like is one vec4), vec4, 6 floats (4 bits)
-            const uniformBufferSize = (4 * 16) + (4 * 16) + (4 * 4) + (8 * 4);
+            // mat4 (each line is one vec4), mat4 (each like is one vec4), vec4, 12 floats (4 bits)
+            const uniformBufferSize = (4 * 16) + (4 * 16) + (4 * 4) + (8 * 4) + (4 * 4);
 
             const uniformData = new Float32Array(uniformBufferSize / 4);
 
@@ -546,16 +594,18 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
 
             const getUniformData = (): Float32Array => {
                 // camera view settings
-                const yaw = yawRef.current;
-                const pitch = pitchRef.current;
-                const distance = distanceRef.current;
+                const yaw = yawRef;
+                const pitch = pitchRef;
+                const distance = distanceRef;
+                const panX = panDistanceXRef;
+                const panY = panDistanceYRef;
                 
                 // 1. Camera (View)
                 const viewMatrix = mat4.identity();
-                mat4.translate(viewMatrix, vec3.fromValues(0, 0, -distance), viewMatrix);
+                mat4.translate(viewMatrix, vec3.fromValues(panX, -panY, -distance), viewMatrix);
                 // World-space camera position (should match view matrix)
                 // View matrix translates world by (0, 0, -4), so camera is at (0, 0, 4)
-                const cameraWorldPos = vec3.fromValues(0, 0, distance);
+                const cameraWorldPos = vec3.fromValues(-panX, panY, distance);
 
                 // 2. Object (Model)
                 const modelMatrix = mat4.identity();
@@ -564,6 +614,8 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                 mat4.rotateX(modelMatrix, pitch, modelMatrix);
                 // Apply the dynamic X rotation next
                 mat4.rotateY(modelMatrix, yaw, modelMatrix);
+                // Apply dynamic panning
+                // mat4.translate(modelMatrix, vec3.fromValues(panX, -panY, 0), modelMatrix);
                 
                 // Then apply initial rotation to orient the volume properly (face the camera)
                 // Rotate around X axis to flip upright
@@ -594,10 +646,16 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                 uniformData[35] = 0.0;                           // cameraPadding
                 uniformData[36] = settingsRef.current.windowMin;
                 uniformData[37] = settingsRef.current.windowMax;
-                uniformData[38] = settingsRef.current.brightness;
+                uniformData[38] = settingsRef.current.stepSize;
                 uniformData[39] = settingsRef.current.contrast;
                 uniformData[40] = settingsRef.current.opacity;
                 uniformData[41] = settingsRef.current.softness;
+                uniformData[42] = settingsRef.current.clipMinX;
+                uniformData[43] = settingsRef.current.clipMaxX;
+                uniformData[44] = settingsRef.current.clipMinY;
+                uniformData[45] = settingsRef.current.clipMaxY;
+                uniformData[46] = settingsRef.current.clipMinZ;
+                uniformData[47] = settingsRef.current.clipMaxZ;
 
                 return uniformData;
             };

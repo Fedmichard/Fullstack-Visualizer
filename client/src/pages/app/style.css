@@ -448,3 +448,90 @@ input[type=range]:hover::-moz-range-thumb {
 .reset-btn:active {
     transform: scale(0.95);
 }
+
+.loading-bar-container {
+    width: 240px;           /* Width of the bar */
+    height: 6px;            /* Thickness */
+    background-color: var(--panel-light); /* Dark gray track */
+    border-radius: 3px;
+    overflow: hidden;       /* Hides the bar when it slides out */
+    margin: 1.5rem auto 0.5rem; /* Centered with spacing */
+    position: relative;
+}
+
+.loading-bar-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;             /* The moving part is 40% of the width */
+    height: 100%;
+    background-color: var(--accent); /* Yellow */
+    border-radius: 3px;
+    
+    /* The Animation Loop */
+    animation: loading-shimmer 1.5s infinite ease-in-out;
+}
+
+.loading-text {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+@keyframes loading-shimmer {
+    0% { transform: translateX(-150%); }   /* Start off-screen left */
+    100% { transform: translateX(350%); }  /* End off-screen right */
+}
+
+/* --- NEW ADDITIONS FOR SETTINGS SEPARATION --- */
+
+/* The Separator Line */
+.panel-divider {
+    border: 0;
+    height: 1px; 
+    background-color: var(--line); /* Subtle Gray Line */
+    /* background-color: var(--accent); /* Uncomment this for a YELLOW line */
+    margin: 1.5rem 0 1rem 0; /* Spacing above and below */
+}
+
+/* The "Clip Settings" Header */
+.panel-section-title {
+    color: var(--text-light); /* Brighter than the muted text */
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Optional: Add a little colored dot or line next to the title */
+.panel-section-title::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 16px;
+    background-color: var(--accent); /* Yellow accent bar */
+    border-radius: 2px;
+}
+
+/* Grouping axes together visually */
+.axis-group {
+    background-color: rgba(255, 255, 255, 0.03); /* Very subtle background */
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.axis-group-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    display: block;
+}
