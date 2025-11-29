@@ -14,15 +14,11 @@ The application allows a user to upload a series of 2D DICOM medical images. The
 ---
 
 A demo of the 3D volumetric renderer in action
-<img width="2557" height="1273" alt="image" src="https://github.com/user-attachments/assets/4c07c4d1-8000-4fa9-9fef-721760feb468" />
-
+<img width="2338" height="1221" alt="image" src="https://github.com/user-attachments/assets/e74ca406-233b-4d34-9f74-db2ed819aa42" />
 <br>
-
-Patient chest at default values
-<img width="1801" height="1211" alt="image" src="https://github.com/user-attachments/assets/38e7a49c-204c-4962-b34b-2f96886f4b78" />
-
+Patient chest at default render settings and X-Axis clipping
+<img width="2558" height="1220" alt="image" src="https://github.com/user-attachments/assets/216c0367-f47e-43bb-bad7-2ace10ba2df1" />
 <br>
-
 Skull scan with manipulated contrast, opacity, and softness
 <img width="2558" height="1276" alt="image" src="https://github.com/user-attachments/assets/d6c9f794-5eb6-4014-8029-431b7dbe566a" />
 
@@ -49,6 +45,7 @@ Skull scan with manipulated contrast, opacity, and softness
 * https://stackoverflow.com/questions/6111559/volume-rendering-confusion-with-front-to-back-compositing
 * https://gpuweb.github.io/gpuweb/#ref-for-dom-gputextureformat-r16uint%E2%91%A0
 * https://community.khronos.org/t/linear-filtering-for-texture3d-not-working-while-nearest-filtering-works/108637
+* And of course our good friends google + AI
 
 ## Next Steps
 
