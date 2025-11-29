@@ -80,7 +80,6 @@ export const AxialView: React.FC<AxialViewProps> = ({
                 height={height}  // Set internal resolution
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }} // CSS scaling
             />
-            <p>Slice {sliceIndex}</p>
         </div>
     );
 };
