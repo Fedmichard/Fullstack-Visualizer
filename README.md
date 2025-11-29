@@ -47,14 +47,12 @@ Skull scan with manipulated contrast, opacity, and softness
 * https://community.khronos.org/t/linear-filtering-for-texture3d-not-working-while-nearest-filtering-works/108637
 * And of course our good friends google + AI
 
-## Next Steps
+## Next Steps (2026)
 
-* Camera Interaction
 * Metadata Viewing
-* Render Setting Functionality
 * Transfer Function
 * Blinn-phong Lighting
-* Export Functionality
+* Export Functionality (Probably not...)
 
 ## How to Run
 
@@ -63,6 +61,7 @@ Skull scan with manipulated contrast, opacity, and softness
 * [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
 * [Node.js](https://nodejs.org/en) (v18 or later)
 * A WebGPU-compatible browser (e.g., Google Chrome, Microsoft Edge)
+* Preferably a dedicated graphics card (lower step size if you need to)
 
 ---
 
