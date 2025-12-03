@@ -151,7 +151,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
             const huData = volumeInfo.volumeData; 
 
             // Convert signed Int16 to unsigned Uint16
-            // create new array
+            // Create new array
             const unsignedData = new Uint16Array(huData.length);
             for (let i = 0; i < huData.length; i++) {
                 // Shift from [-32768, 32767] to [0, 65535]
@@ -347,12 +347,15 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                     // of the eye
                     let t_start = max(t_hit.x, 0.0);
                     
-                    // Step 3: Compute the step size to march through the volume grid
+                    // Compute the step size to march through the volume grid
                     // Using a reasonable step count
                     let steps = u32(uniforms.stepSize);
+                    // creates a ray from the beginning of the box entry
+                    // to end exit of the box
+                    // divide it by an amount of steps to get a vector that represents a single stepping distance
                     let dt = (t_hit.y - t_start) / f32(steps);
                     
-                    // Step 4: Starting from the entry point, march the ray through the volume
+                    // Starting from the entry point, march the ray through the volume
                     // and sample it
                     var p = transformed_eye + t_start * dir;
 
@@ -378,6 +381,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                         // Sample the volume
                         // RG8Unorm: R channel contains high byte, G channel contains low byte
                         // Both R and G are already normalized to 0.0-1.0 range
+                        // sample that texture, with this sample, at this position in the cube
                         let sample = textureSampleLevel(volumeTex, samp, clamped_p, 0.0);
                         let r_val = sample.r; // Already normalized (0.0-1.0)
                         let g_val = sample.g; // Already normalized (0.0-1.0)
@@ -388,6 +392,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                         let high_byte = r_val * 255.0;
                         let low_byte = g_val * 255.0;
                         let combined_16bit = high_byte * 256.0 + low_byte;
+                        // returns an intensity value that maps to the position from the raymarched cube position
                         let intensity = combined_16bit / 65535.0; // Normalized 0.0-1.0
                         
                         // Convert normalized intensity to approximate HU value
@@ -404,7 +409,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                         // We can be sure the value is inside the window, so no clamp is needed
                         var normalized_intensity = (hu_value - uniforms.windowMin) / (uniforms.windowMax - uniforms.windowMin);
 
-                        normalized_intensity = normalized_intensity* uniforms.contrast;
+                        normalized_intensity = normalized_intensity * uniforms.contrast;
 
                         normalized_intensity = clamp(normalized_intensity, 0.0, 1.0);
                         

@@ -69,7 +69,7 @@ public class DicomController : ControllerBase
                 return BadRequest("Invalid DICOM image dimensions.");
             }
 
-            // Retrieve Pixel Spacing ---
+            // Retrieve Pixel Spacing
             var pixelSpacing = firstSlice.Dataset.TryGetValues(DicomTag.PixelSpacing, out double[] spacing)
                 // if it doesn't exist default x, y to 1
                 ? spacing
@@ -98,17 +98,12 @@ public class DicomController : ControllerBase
                     zSpacing = sliceThickness;
                 }
             }
-            else if (firstSlice.Dataset.TryGetSingleValue(DicomTag.SliceThickness, out double singleThickness))
-            {
-                zSpacing = singleThickness;
-            }
 
-            // --- Sanity check to avoid zero spacing ---
             if (zSpacing <= 0.0) {
                 zSpacing = 1.0;
             }
 
-            // --- Allocate Volume ---
+            // Allocating Volume
             int sliceSize = width * height;
             int totalVoxels = sliceSize * depth;
             // using short since it's 16 bits for our HU values
@@ -141,7 +136,7 @@ public class DicomController : ControllerBase
                 // this takes the raw pixel data and turns it into the HU vlaues
                 // this offset get's the xy raw values of the slice i
                 int sliceOffset = i * sliceSize;
-                /// for every pixel on the slice
+                // for every pixel on the slice
                 for (int k = 0; k < sliceSize; k++)
                 {
                     // compute the slope intercept formula
