@@ -159,16 +159,6 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                 unsignedData[i] = huData[i] + 2**15; 
             }
             
-            // RG8Unorm format requires bytes, not 16-bit values
-            // We need to split each 16-bit value into high and low bytes
-            // Format: [R0, G0, R1, G1, ...] where R is high byte, G is low byte
-            const rg8Data = new Uint8Array(huData.length * 2);
-            for (let i = 0; i < unsignedData.length; i++) {
-                const value = unsignedData[i];
-                rg8Data[i * 2] = (value >> 8) & 0xFF;      // High byte -> R
-                rg8Data[i * 2 + 1] = value & 0xFF;          // Low byte -> G
-            }
-            
             const displayWidth = canvas.clientWidth;
             const displayHeight = canvas.clientHeight;
             
