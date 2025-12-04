@@ -32,9 +32,9 @@ export interface RenderSettings {
 const DEFAULT_SETTINGS: RenderSettings = {
     windowMin: -500,
     windowMax: 3000,
-    contrast: 1.0,
+    contrast: 3.0,
     opacity: 1.0,
-    softness: 0.2,
+    softness: 1.0,
     stepSize: 512,
     clipMinX: 0.0, clipMaxX: 1.0,
     clipMinY: 0.0, clipMaxY: 1.0,

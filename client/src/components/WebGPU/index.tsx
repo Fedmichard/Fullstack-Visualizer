@@ -146,6 +146,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
             // 'volumeInfo.volumeData' is the Int16Array of HU values
             // these values are signed (not 0 - 25535) but -32768 - 32767
             // we need to have unsigned for linear filtering
+            // this is because linear filtering is hardware accelerated interpolation (trilinear interpolation)
             // and we will convert them to unsigned so we can get them from 0 -1 
             // so we can index our transfer function properly and so the gpu can read it
             const huData = volumeInfo.volumeData; 
@@ -189,7 +190,9 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
             }
 
             // logical device
-            const device = await adapter.requestDevice();
+            const device = await adapter.requestDevice({
+                requiredFeatures: [ "texture-formats-tier1" as GPUFeatureName ]
+            });
             if (!device) {
                 fail('need a browser that supports WebGPU');
                 return;
@@ -270,11 +273,11 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                 @group(0) @binding(1) var samp : sampler;
                 @group(0) @binding(2) var volumeTex : texture_3d<f32>;
 
-                // Been a minute but I have to remember that the vertex shader runs once per vertex from an object
                 // the fragment is once per pixel on the screen
                 // per vertex we retrieve vertex attributes from them
                 // vec4 position: 1, -1, 1, 1,   vec4 color: 1, 0, 1, 1,  vec2 uv: 0, 1,
                 // we don't use the color so it's no problem
+                // rasterizes the pixels touched by the box
                 @vertex
                 fn vs(
                     // this is what we extract
@@ -287,9 +290,15 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                     out.Position = uniforms.modelViewProjectionMatrix * position;
                     out.uv = uv;
 
-                    // --- This is the logic from Will Usher's shader ---
-                    // NOTE: TEXTURE SAMPLING REQUIRES UNSIGNED NORMALIZED VALUES
-                    // Transform world-space camera to [-1, 1] model-space
+                    // since our raymarcher is using the provided ray intersection formula
+                    // we must convert everything to 0 to 1 for simplicity and to keep everything uniform
+                    // we are raymarching through a box but also raymarching through a 3D texture
+                    // we need the inverseModelMatrix because when we apply transformations to our cube
+                    // we are taking it from local/model space into world space
+                    // we need the -1 to 1 values of the cubes vertices
+                    // so we inverse the model matrix to bring it back to local space (vec4 of -1 to 1 values)
+                    // so this finally gives you the camera position relative to the volume in local space
+                    // The reason we want to do our calculations in local space is because it becomes significantly
                     let cameraModelPos = (uniforms.inverseModelMatrix * vec4f(uniforms.cameraPos, 1.0)).xyz;
                     
                     // Cube is made with [-1, 1] values
@@ -327,6 +336,9 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                     return vec2f(t0, t1);
                 }
 
+                // fragment shader will essentially jump into the local space of the object
+                // and perform the raymarching + color calculations on the box
+                // to do that we need all those previous values
                 @fragment
                 fn fs(
                     @location(0) uv: vec2f,
@@ -353,10 +365,13 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                     // creates a ray from the beginning of the box entry
                     // to end exit of the box
                     // divide it by an amount of steps to get a vector that represents a single stepping distance
+                    // get the length basically exit point - starting point and divide it by a step size
+                    // equivalent to 1 step
                     let dt = (t_hit.y - t_start) / f32(steps);
                     
                     // Starting from the entry point, march the ray through the volume
                     // and sample it
+                    // starting from the transformed eye, go the start of the box intersection in a certain direction
                     var p = transformed_eye + t_start * dir;
 
                     // continuous color and opacity
@@ -364,59 +379,52 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                     
                     for (var i = 0u; i < steps; i++) {
                         // Clamp position to [0, 1] for texture sampling
-                        let clamped_p = clamp(p, vec3f(0.0), vec3f(1.0));
+                        let clampedP = clamp(p, vec3f(0.0), vec3f(1.0));
 
+                        // AI generated solution to fix white line artifacts
                         // Compute radius from relative XY
-                        let rel = clamped_p.xy * 2.0 - vec2f(1.0);
+                        let rel = clampedP.xy * 2.0 - vec2f(1.0);
                         let r = dot(rel, rel);
 
-                        // If outside circle treat as air
-                        // AI generated solution to fix white line artifacts
+                        // If outside radius treat as air
                         // 0.75
                         if (r > 0.75) {
                             p += dir * dt;
                             continue;
                         }
                         
-                        // Sample the volume
-                        // RG8Unorm: R channel contains high byte, G channel contains low byte
-                        // Both R and G are already normalized to 0.0-1.0 range
                         // sample that texture, with this sample, at this position in the cube
-                        let sample = textureSampleLevel(volumeTex, samp, clamped_p, 0.0);
-                        let r_val = sample.r; // Already normalized (0.0-1.0)
-                        let g_val = sample.g; // Already normalized (0.0-1.0)
+                        let sample = textureSampleLevel(volumeTex, samp, clampedP, 0.0);
+                        let intensity = sample.r; // Already normalized (0.0-1.0)
                         
-                        // Reconstruct 16-bit unsigned value from RG8Unorm
-                        // R and G are normalized, so multiply by 255 to get byte values
-                        // Then combine: (high_byte * 256 + low_byte) / 65535.0
-                        let high_byte = r_val * 255.0;
-                        let low_byte = g_val * 255.0;
-                        let combined_16bit = high_byte * 256.0 + low_byte;
-                        // returns an intensity value that maps to the position from the raymarched cube position
-                        let intensity = combined_16bit / 65535.0; // Normalized 0.0-1.0
-                        
-                        // Convert normalized intensity to approximate HU value
+                        // Convert normalized intensity to approximate HU value (-2000 -> 4000)
                         // intensity 0.0 = -32768 HU, intensity 0.5 = 0 HU, intensity 1.0 = +32767 HU
                         let hu_value = (intensity - 0.5) * 65536.0; // Approximate HU
 
-                        // Skip samples that are OUTSIDE our window, default -500 -> 3000
+                        // Skip samples that are OUTSIDE our window, default -2000 -> 4000
                         if (hu_value < uniforms.windowMin || hu_value > uniforms.windowMax) {
                             p += dir * dt;
                             continue; // Skip this sample - it's air or garbage
                         }
                         
                         // Map HU range to visible window
+                        // normalize them once more for our color values 0-1
                         // We can be sure the value is inside the window, so no clamp is needed
                         var normalized_intensity = (hu_value - uniforms.windowMin) / (uniforms.windowMax - uniforms.windowMin);
 
+                        // brighten/darken
                         normalized_intensity = normalized_intensity * uniforms.contrast;
 
+                        // clamp it to 1 max
                         normalized_intensity = clamp(normalized_intensity, 0.0, 1.0);
                         
                         // Only apply opacity to values within our window
                         let alpha = smoothstep(0.0, uniforms.softness, normalized_intensity) * uniforms.opacity;
                         
                         // Simple grayscale color
+                        // let rgb = vec3f(normalized_intensity, 0.0, 0.0); red
+                        // let rgb = vec3f(0.0, normalized_intensity, 0.0); blue
+                        // let rgb = vec3f(normalized_intensity); grayscale
                         let rgb = vec3f(normalized_intensity);
                         
                         // Step 4.2: Accumulate the color and opacity using the front-to-back
@@ -429,6 +437,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                     }
                     
                     return color;
+                    // return vec4(1.0);
                 }
                 `,
             });
@@ -540,7 +549,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                 // linear filtering is done on the gpu which only accepts unsigned values,
                 // you can't use linear filtering
                 // Also apparently pure integer formats don't allow any form of filtering so we use 
-                format: "rg8unorm",
+                format: "r16unorm",
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
             });
 
@@ -548,7 +557,7 @@ export const WebGPURenderer: React.FC<WebGPURendererProps> = ({volumeInfo, setti
                 {
                     texture: volumeTexture
                 },
-                rg8Data,
+                unsignedData,
                 {
                     offset: 0,
                     // RG8Unorm: 2 bytes per voxel (R and G channels)
