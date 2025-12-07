@@ -330,7 +330,7 @@ function App() {
                                         <span className="setting-value">{renderSettings.softness.toFixed(2)}</span>
                                     </div>
                                     <input 
-                                        type="range" min="0.0" max="1.0" step="0.01"
+                                        type="range" min="0.0" max="5.0" step="0.01"
                                         value={renderSettings.softness}
                                         onChange={(e) => updateSetting('softness', Number(e.target.value))}
                                     />
